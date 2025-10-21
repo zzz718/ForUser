@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
 
 namespace ForUser.SqlServer
 {
@@ -29,6 +30,11 @@ namespace ForUser.SqlServer
             return Task.CompletedTask;
         }
 
+        public async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().FindAsync(predicate);
+        }
+
         public async Task<TEntity> GetByIdAsync(TKey id)
         {
             return await _context.Set<TEntity>().FindAsync(id);
@@ -40,9 +46,9 @@ namespace ForUser.SqlServer
             return Task.CompletedTask;
         }
 
-        //public async Task<IQueryable<TEntity>> GetAsNoTrackingQueryableAsync(string tag = null)
-        //{
-
-        //}
+        public   IQueryable<TEntity> AsNoTracking()
+        {
+            return _context.Set<TEntity>().AsNoTracking<TEntity>();
+        }
     }
 }

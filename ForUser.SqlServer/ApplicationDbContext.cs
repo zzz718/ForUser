@@ -1,5 +1,6 @@
 ﻿using ForUser.Domains;
 using ForUser.Domains.Commons;
+using ForUser.Domains.Users;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using System;
@@ -25,6 +26,10 @@ namespace ForUser.SqlServer
         }
         private readonly SnowIdGenerator _snowIdGenerator;
         private readonly ICurrentUser _currentUser;
+
+        public DbSet<UserEntity> Users { get; set; }
+
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);

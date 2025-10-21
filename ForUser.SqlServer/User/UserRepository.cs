@@ -12,5 +12,10 @@ namespace ForUser.SqlServer.User
         public UserRepository(ApplicationDbContext context) : base(context)
         {
         }
+
+        public async Task<UserEntity> GetUserByCodeAsync(string code)
+        {
+            await 
+        }
     }
 }

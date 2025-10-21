@@ -1,7 +1,11 @@
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using ForUser.Application.Users.Profiles;
 using ForUser.Domains.Commons;
 using ForUser.Modules;
+using ForUser.SqlServer;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Serilog;
 using Snowflake.Core;
@@ -30,6 +34,15 @@ namespace ForUser
                 containerBuilder.RegisterModule<ApplicationModule>();
                 containerBuilder.RegisterModule<InfrastructureModule>();
             });
+
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+                                        ?? throw new InvalidOperationException("Connection string'DefaultConnection' not found.");
+
+            builder.Services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(connectionString));
+
+            //添加Automapper
+            builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
             //添加httpAccessor用于获取当前请求上下文来现在只是用来获取登录用户信息
             builder.Services.AddHttpContextAccessor();
             // Add services to the container.
@@ -66,7 +79,7 @@ namespace ForUser
             app.UseStaticFiles();
 
             app.UseRouting();
-
+            
             app.UseAuthorization();
 
             app.MapRazorPages();
