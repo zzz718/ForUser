@@ -10,9 +10,9 @@ namespace ForUser.Application.Users
 {
     public interface IUserService
     {
-        Task<MessageModel<CreateOrUpdateUserDto>> CreateUserAsync(CreateOrUpdateUserDto input);
-        Task<MessageModel<bool>> DeleteUserAsync(int id);
-        Task<MessageModel<ViewUserDto>> GetUserForViewAsync(int id);
-        Task<MessageModel<List<PageUserDto>>> GetListAsync(PageUserDto input);
+        Task<string> CreateUserAsync(CreateOrUpdateUserDto input);
+        Task<bool> DeleteUserAsync(int id);
+        Task<ViewUserDto> GetUserForViewAsync(int id);
+        Task<List<PageUserDto>> GetListAsync(PageUserDto input);
     }
 }

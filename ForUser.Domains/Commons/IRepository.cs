@@ -16,5 +16,7 @@ namespace ForUser.Domains
 
         Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate);
         IQueryable<TEntity> AsNoTracking();
+
+        Task<int> SaveAsync();
     }
 }

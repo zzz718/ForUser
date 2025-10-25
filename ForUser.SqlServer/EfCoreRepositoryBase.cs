@@ -50,5 +50,10 @@ namespace ForUser.SqlServer
         {
             return _context.Set<TEntity>().AsNoTracking<TEntity>();
         }
+
+        public async Task<int> SaveAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
     }
 }

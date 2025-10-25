@@ -8,7 +8,11 @@ namespace ForUser.Domains.Users
 {
     public class UserEntity : Entity
     {
-        protected UserEntity(long Id) : base(Id)
+        public UserEntity()
+        {
+
+        }
+        public UserEntity(long Id) : base(Id)
         {
         }
         /// <summary>

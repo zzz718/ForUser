@@ -1,5 +1,6 @@
 ﻿using Autofac;
 using ForUser.Domains.Users;
+using ForUser.SqlServer.User;
 
 namespace ForUser.Modules
 {
@@ -7,7 +8,7 @@ namespace ForUser.Modules
     {
         protected override void Load(ContainerBuilder builder)
         {
-            var infraAssembly = typeof(IUserRepository).Assembly;
+            var infraAssembly = typeof(UserRepository).Assembly;
             builder.RegisterAssemblyTypes(infraAssembly)
                    .Where(t => t.Name.EndsWith("Repository")
                             && !t.IsAbstract

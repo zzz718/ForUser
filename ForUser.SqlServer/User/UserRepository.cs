@@ -13,9 +13,6 @@ namespace ForUser.SqlServer.User
         {
         }
 
-        public async Task<UserEntity> GetUserByCodeAsync(string code)
-        {
-            await 
-        }
+
     }
 }

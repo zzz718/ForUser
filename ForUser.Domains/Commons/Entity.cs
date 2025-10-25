@@ -10,7 +10,8 @@ namespace ForUser.Domains
     public class Entity : IEntity
     {
         public virtual  long Id { get ;protected set; }
-        protected Entity(long Id)
+        public Entity(){}
+        public  Entity(long Id)
         {
             this.Id = Id;
         }
