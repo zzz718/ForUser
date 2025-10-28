@@ -23,8 +23,12 @@ namespace ForUser.SqlServer
                 entity.Property(e => e.Mobile).HasMaxLength(20);
                 entity.Property(e => e.Password).HasMaxLength(50);
                 entity.Property(e => e.PasswordHash).HasMaxLength(50);
+                entity.Property(e => e.CreateId);
                 entity.Property(e => e.CreateName).HasMaxLength(20);
-                entity.Property(e => e.ModifierName).HasMaxLength(20);
+                entity.Property(e => e.CreateTime);
+                entity.Property(e => e.ModifierId);
+                entity.Property(e => e.ModifilerName).HasMaxLength(20);
+                entity.Property(e => e.ModifilcationTime);
             });
         }
     }

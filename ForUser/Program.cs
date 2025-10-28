@@ -14,6 +14,7 @@ using Microsoft.OpenApi.Models;
 using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace ForUser
 {
@@ -49,7 +50,11 @@ namespace ForUser
             // ====== 添加 Swagger 服务 ======
             builder.Services.AddEndpointsApiExplorer(); // 必需：用于发现 API
 
-           
+            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            //    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme
+            //    , options => builder.Configuration.Bind("JwtSettings", options));
+
+            builder.Services.AddJwtService();
             builder.Services.AddSwaggerGen(options =>
             {
                 // 遍历并应用Swagger分组信息
@@ -76,7 +81,30 @@ namespace ForUser
                 });
                 options.CustomSchemaIds(type => type.FullName);
 
-                
+                options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type = SecuritySchemeType.ApiKey,
+                    In = ParameterLocation.Header,
+                    Description =
+                            "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+                });
+
+                //让swagger遵守jwt协议
+                options.AddSecurityRequirement(new OpenApiSecurityRequirement
+                 {
+                   {
+                     new OpenApiSecurityScheme
+                     {
+                        Reference = new OpenApiReference
+                        {
+                             Type = ReferenceType.SecurityScheme,
+                            Id = "Bearer"
+                        }
+                     },
+                    new List<string>()
+                    }
+                 });
             });
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
             builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
@@ -137,6 +165,7 @@ namespace ForUser
                     options.RoutePrefix = "swagger";
                 });
             }
+            app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();
             //app.MapRazorPages();

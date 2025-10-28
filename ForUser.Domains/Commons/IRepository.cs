@@ -15,8 +15,10 @@ namespace ForUser.Domains
         Task DeleteAsync(TEntity entity);
 
         Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate);
-        IQueryable<TEntity> AsNoTracking();
 
+        Task<List<TEntity>> FindListAsync(Expression<Func<TEntity, bool>> predicate);
+        IQueryable<TEntity> AsNoTracking();
+        Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);
         Task<int> SaveAsync();
     }
 }

@@ -21,11 +21,12 @@ namespace ForUser.Application.Users
         private readonly SnowIdGenerator _snowIdGenerator;
         private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, SnowIdGenerator snowIdGenerator,IMapper mapper)
+        public UserService(IUserRepository userRepository, SnowIdGenerator snowIdGenerator,IMapper mapper, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _snowIdGenerator = snowIdGenerator;
             _mapper = mapper;
+            _configuration = configuration;
         }
 
         public async Task<string> CreateUserAsync(CreateOrUpdateUserDto input)
@@ -44,11 +45,12 @@ namespace ForUser.Application.Users
                 throw new Exception($"手机号{existByUserMobileInfo.Mobile}已存在");
             }
 
-            entity.PasswordHash = _snowIdGenerator.NextId().ToString("N");
+            entity.PasswordHash = Guid.NewGuid().ToString("N");
             SetInitialPassword(entity);
             await _userRepository.AddAsync(entity);
             if(await _userRepository.SaveAsync() > 0)
             {
+
                 return "保存成功";
             }
             else
@@ -81,7 +83,7 @@ namespace ForUser.Application.Users
         private void SetInitialPassword(UserEntity entity)
         {
 
-            var initialPassword = _configuration.GetSection("InitialPassword").Value;
+            var initialPassword = _configuration["InitialPassword"];
             if (string.IsNullOrWhiteSpace(initialPassword))
             {
                 throw new Exception($"获取配置项：InitialPassword 失败，请联系管理员");

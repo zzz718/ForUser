@@ -85,16 +85,14 @@ namespace ForUser.SqlServer
             if(entity is IEntity entityBase)
             {
                 var currentId = (long?)entry.Property("Id").CurrentValue;
-                if (currentId == null || currentId == 0)
-                {
-                    entry.Property("Id").CurrentValue = _snowIdGenerator.NextId();
-                }
+                entry.Property("Id").CurrentValue = _snowIdGenerator.NextId();
+
             }
             if (entity is IAuditObject audit)
             {
-                audit.CreatorId = _currentUser.Id;
-                audit.CreationTime = DateTime.Now;
-                audit.CreatorName = _currentUser.Name;
+                audit.CreateId = _currentUser.Id;
+                audit.CreateTime = DateTime.Now;
+                audit.CreateName = _currentUser.Name;
             }
         }
         /// <summary>
@@ -107,8 +105,8 @@ namespace ForUser.SqlServer
             if (entity is IAuditObject audit)
             {
                 audit.ModifierId = _currentUser.Id;
-                audit.ModificationTime = DateTime.Now;
-                audit.ModifierName = _currentUser.Name;
+                audit.ModifilcationTime = DateTime.Now;
+                audit.ModifilerName = _currentUser.Name;
             }
         }
     }

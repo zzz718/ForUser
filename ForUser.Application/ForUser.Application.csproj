@@ -18,4 +18,8 @@
     <ProjectReference Include="..\ForUser.Util\ForUser.Util.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Login\Dtos\" />
+  </ItemGroup>
+
 </Project>

@@ -32,7 +32,17 @@ namespace ForUser.SqlServer
 
         public async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
         {
-            return await _context.Set<TEntity>().FindAsync(predicate);
+            return await _context.Set<TEntity>().FirstOrDefaultAsync(predicate);
+        }
+
+        public async Task<List<TEntity>> FindListAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().Where(predicate).ToListAsync();
+        }
+
+        public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().AnyAsync(predicate);
         }
 
         public async Task<TEntity> GetByIdAsync(TKey id)

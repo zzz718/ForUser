@@ -19,25 +19,47 @@ namespace ForUser.Domains.Commons
             _httpContextAccessor = httpContextAccessor;
         }
 
-        public bool IsAuthenticated { get; protected set; }
+        private HttpContext? CurrentHttpContext => _httpContextAccessor.HttpContext;
 
-        public long Id { get; protected set; }
+        private ClaimsPrincipal? CurrentUserClaims => CurrentHttpContext?.User;
 
-        public string Name { get; protected set; }
+        public bool IsAuthenticated => CurrentUserClaims?.Identity?.IsAuthenticated == true;
 
-        public string? SurName { get; protected set; }
+        public long Id
+        {
+            get
+            {
+                if (long.TryParse(CurrentUserClaims?.FindFirst("id")?.Value, out var id))
+                    return id;
+                return 0;
+            }
+        }
 
-        public string? PhoneNumber { get; protected set; }
+        public string Name => CurrentUserClaims?.FindFirst("userName")?.Value ?? string.Empty;
 
-        public bool PhoneNumberVerified { get; protected set; }
+        public string? SurName => CurrentUserClaims?.FindFirst("surname")?.Value;
 
-        public string? Email { get; protected set; }
+        public string? PhoneNumber => CurrentUserClaims?.FindFirst("phone_number")?.Value;
 
-        public bool EmailVerified { get; protected set; }
+        public bool PhoneNumberVerified =>
+            bool.TryParse(CurrentUserClaims?.FindFirst("phone_number_verified")?.Value, out var verified) && verified;
 
-        public long? TenantId { get; protected set; }
+        public string? Email => CurrentUserClaims?.FindFirst("email")?.Value;
 
-        public string[] Roles { get; protected set; }
+        public bool EmailVerified =>
+            bool.TryParse(CurrentUserClaims?.FindFirst("email_verified")?.Value, out var verified) && verified;
+
+        public long? TenantId
+        {
+            get
+            {
+                if (long.TryParse(CurrentUserClaims?.FindFirst("tenant_id")?.Value, out var tid))
+                    return tid;
+                return null;
+            }
+        }
+
+        public string[] Roles => CurrentUserClaims?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray() ?? Array.Empty<string>();
 
         public Claim? FindClaim(string claimType)
         {

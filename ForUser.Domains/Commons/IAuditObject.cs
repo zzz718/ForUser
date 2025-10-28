@@ -14,29 +14,29 @@ namespace ForUser.Domains.Commons
         /// <summary>
         ///  创建人Id
         /// </summary>
-        long CreatorId { get; set; }
+        public long CreateId { get; set; }
         /// <summary>
         /// 创建人名称
         /// </summary>
-        string CreatorName { get; set; }
+        public string CreateName { get; set; }
         /// <summary>
         /// 创建时间
         /// </summary>
-        DateTime CreationTime { get; set; }
+        public DateTime CreateTime { get; set; }
 
         /// <summary>
         /// 修改人编号
         /// </summary>
-        long? ModifierId { get; set; }
+        public long? ModifierId { get; set; }
         /// <summary>
         /// 修改人名称
         /// </summary>
-        string ModifierName { get; set; }
+        public string ModifilerName { get; set; }
 
         /// <summary>
         /// 修改时间
         /// </summary>
-        DateTime? ModificationTime { get; set; }
+        public DateTime? ModifilcationTime { get; set; }
 
 
     }

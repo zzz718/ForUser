@@ -20,13 +20,13 @@ namespace ForUser.SqlServer
         public static EntityTypeBuilder<T> ConfigureAuditProperties<T>(this EntityTypeBuilder<T> builder)
             where T : class, IAuditObject
         {
-            builder.Property(x => x.CreatorId).HasComment("创建人Id").IsRequired();
-            builder.Property(x => x.CreatorName).HasComment("创建人名称").HasMaxLength(20).IsRequired();
-            builder.Property(x => x.CreationTime).HasComment("创建时间").IsRequired();
+            builder.Property(x => x.CreateId).HasComment("创建人Id").IsRequired();
+            builder.Property(x => x.CreateName).HasComment("创建人名称").HasMaxLength(20).IsRequired();
+            builder.Property(x => x.CreateTime).HasComment("创建时间").IsRequired();
 
             builder.Property(x => x.ModifierId).HasComment("最后修改人Id");
-            builder.Property(x => x.ModifierName).HasComment("最后修改人").HasMaxLength(20);
-            builder.Property(x => x.ModificationTime).HasComment("最后修改时间");
+            builder.Property(x => x.ModifilerName).HasComment("最后修改人").HasMaxLength(20);
+            builder.Property(x => x.ModifilcationTime).HasComment("最后修改时间");
 
             return builder;
         }
