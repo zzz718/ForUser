@@ -66,7 +66,8 @@ namespace ForUser.Domains.Commons
 
             //准备calims，记录登录信息
             var calims = loginResult.PropValuesType().Select(x => new Claim(x.Name, x.Value.ToString(), x.Type)).ToList();
-
+            calims.Add(new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()));
+            calims.Remove(calims.First(x => x.Type == "Password"));
             //创建header
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtsetting.SecurityKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -81,7 +82,8 @@ namespace ForUser.Domains.Commons
             result.ExpiresDate = token.ValidTo.AddHours(8).ToString();
             result.Token = tokenStr;
             result.UserName = loginResult.UserName;
-
+            result.UserCode = loginResult.UserCode;
+            result.claims = calims;
             return result;
         }
     }

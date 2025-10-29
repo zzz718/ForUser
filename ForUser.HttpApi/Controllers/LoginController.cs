@@ -38,7 +38,6 @@ namespace ForUser.HttpApi.Controllers
         public string GetToken(long id,string usercode,string userName, string password)
         {
             var loginResult = JwtServiceExtension.BuildToken(new LoginInput {Id = id,UserCode = usercode ,UserName = userName, Password = password });
-
             return loginResult.Token ?? string.Empty;
         }
 
@@ -62,7 +61,6 @@ namespace ForUser.HttpApi.Controllers
                 Password = Convert.ToString(token.Claims.FirstOrDefault(f => f.Type == "Password").Value),
             };
             return loginResult;
-
         }
 
         [HttpPost]

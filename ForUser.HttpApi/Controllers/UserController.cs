@@ -11,11 +11,17 @@ using System.IdentityModel.Tokens.Jwt;
 
 namespace ForUser.HttpApi.Controllers
 {
+    /// <summary>
+    /// 用户接口
+    /// </summary>
     [ApiExplorerSettings(GroupName = ModuleCode.Basic)]
     public class UserController: AppControllerBase
     {
         private readonly IUserService  _userService;
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="userService"></param>
         public UserController(IUserService userService)
         {
             _userService = userService;
@@ -27,8 +33,5 @@ namespace ForUser.HttpApi.Controllers
             var result = await _userService.CreateUserAsync(userDetail);
             return MessageModel.OK("操作成功",result);
         }
-
-
-       
     }
 }

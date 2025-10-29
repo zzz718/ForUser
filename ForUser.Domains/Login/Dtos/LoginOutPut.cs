@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +10,7 @@ namespace ForUser.Domains.Login.Dtos
     public class LoginOutPut
     {
         public long? Id { get; set; }
+        public string UserCode { get; set; }
         /// <summary>
         /// 用户名
         /// </summary>
@@ -28,6 +30,8 @@ namespace ForUser.Domains.Login.Dtos
         /// Token过期时间
         /// </summary>
         public string? ExpiresDate { get; set; }
+
+        public List<Claim> claims { get; set; }
 
     }
 }

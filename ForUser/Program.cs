@@ -15,6 +15,8 @@ using Serilog;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using StackExchange.Redis;
+using System;
 
 namespace ForUser
 {
@@ -38,7 +40,19 @@ namespace ForUser
 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(connectionString));
+            // redis
+            builder.Services.AddSingleton<IConnectionMultiplexer>(factory =>
+            {
+                var redisConfig = builder.Configuration["Redis:Configuration"];
+                // 或：var redisConfig = builder.Configuration.GetSection("Redis:Configuration").Value;
 
+                if (string.IsNullOrEmpty(redisConfig))
+                    throw new InvalidOperationException("Redis configuration is missing in appsettings.json under 'Redis:Configuration'.");
+
+                var cfg = ConfigurationOptions.Parse(redisConfig);
+                cfg.ResolveDns = true;
+                return ConnectionMultiplexer.Connect(cfg);
+            });
             //添加Automapper
             builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
             //添加httpAccessor用于获取当前请求上下文来现在只是用来获取登录用户信息
@@ -117,6 +131,8 @@ namespace ForUser
                 containerBuilder.RegisterModule<InfrastructureModule>();
 
                 containerBuilder.RegisterModule<ApplicationModule>();
+
+                
 
             });
             var app = builder.Build();
