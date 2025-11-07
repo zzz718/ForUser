@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35806.99 d17.13
+VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForUser", "ForUser\ForUser.csproj", "{A2E250C4-8B64-4165-BD72-0548BC7495F6}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForUser.SqlServer", "ForUser.SqlServer\ForUser.SqlServer.csproj", "{5B7AE386-197A-4031-8C56-4547D66D8EF0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForUser.HttpApi", "ForUser.HttpApi\ForUser.HttpApi.csproj", "{43237F73-AA9B-48E5-B51E-C1A999450638}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForUser.Util", "ForUser.Util\ForUser.Util.csproj", "{AFA72DFF-A5DE-4C39-9DBB-C07A69E75D50}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{43237F73-AA9B-48E5-B51E-C1A999450638}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{43237F73-AA9B-48E5-B51E-C1A999450638}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{43237F73-AA9B-48E5-B51E-C1A999450638}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AFA72DFF-A5DE-4C39-9DBB-C07A69E75D50}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AFA72DFF-A5DE-4C39-9DBB-C07A69E75D50}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AFA72DFF-A5DE-4C39-9DBB-C07A69E75D50}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AFA72DFF-A5DE-4C39-9DBB-C07A69E75D50}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

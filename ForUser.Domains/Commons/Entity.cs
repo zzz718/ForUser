@@ -1,4 +1,5 @@
-﻿using Snowflake.Core;
+﻿using ForUser.Domains.Commons;
+using Snowflake.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,17 +8,15 @@ using System.Threading.Tasks;
 
 namespace ForUser.Domains
 {
-    public class Entity : IEntity
+    public class Entity : IEntity, IAuditObject
     {
         public virtual  long Id { get ;protected set; }
-        protected Entity(long Id)
+        public Entity(){}
+        public  Entity(long Id)
         {
             this.Id = Id;
         }
-        /// <summary>
-        /// 创建组织
-        /// </summary>
-        public long CreateOrg { get; set; }
+
         /// <summary>
         /// 创建人Id
         /// </summary>
@@ -37,11 +36,11 @@ namespace ForUser.Domains
         /// <summary>
         /// 修改人姓名
         /// </summary>
-        public string ModifierName { get; set; }
+        public string? ModifilerName { get; set; }
         /// <summary>
         /// 修改时间
         /// </summary>
-        public DateTime? ModifyTime { get; set; }
-
+        public DateTime? ModifilcationTime { get; set; }
+       
     }
 }

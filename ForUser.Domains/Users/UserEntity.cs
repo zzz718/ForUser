@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ForUser.Domains.Commons;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,7 +9,11 @@ namespace ForUser.Domains.Users
 {
     public class UserEntity : Entity
     {
-        protected UserEntity(long Id) : base(Id)
+        public UserEntity()
+        {
+
+        }
+        public UserEntity(long Id) : base(Id)
         {
         }
         /// <summary>
@@ -22,7 +27,7 @@ namespace ForUser.Domains.Users
         /// <summary>
         /// 性别 0女 1男
         /// </summary>
-        public int Sex { get; set; }
+        public byte Sex { get; set; }
         /// <summary>
         /// 手机号
         /// </summary>
@@ -30,11 +35,11 @@ namespace ForUser.Domains.Users
         /// <summary>
         /// 状态 1启用 0禁用
         /// </summary>
-        public int Status { get; set; }
+        public byte Status { get; set; }
         /// <summary>
         /// 用户类型 0集团 1供应商
         /// </summary>
-        public int Type { get; set; }
+        public byte Type { get; set; }
         /// <summary>
         /// 关联Id供应商填供应商Id，不是供应商填角色Id
         /// </summary>
@@ -50,7 +55,11 @@ namespace ForUser.Domains.Users
         /// <summary>
         /// 员工Id
         /// </summary>
-        public long StaffId { get; set; }
+        public long? StaffId { get; set; }
+        /// <summary>
+        /// 创建组织
+        /// </summary>
+        public long CreateOrg { get; set; }
 
     }
 }
