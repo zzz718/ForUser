@@ -1,6 +1,6 @@
 ﻿using Autofac;
 using ForUser.Domains.Users;
-using ForUser.SqlServer.User;
+using ForUser.SqlServer.Repository;
 
 namespace ForUser.Modules
 {

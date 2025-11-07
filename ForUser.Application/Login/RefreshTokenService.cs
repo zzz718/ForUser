@@ -1,17 +1,11 @@
 ﻿using ForUser.Application.Login.Dtos;
 using ForUser.Domains.Commons;
+using ForUser.Domains.Commons.Cache;
 using ForUser.Domains.Commons.JsonConverters;
 using Microsoft.Extensions.Configuration;
 using StackExchange.Redis;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Text;
 using System.Text.Json;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace ForUser.Application.Login
 {
@@ -20,18 +14,19 @@ namespace ForUser.Application.Login
 
         private readonly string userRefreshTokenKeyFormat = $"Key:{{0}}:User:{{1}}";
         private readonly string userRefreshTokenListKeyFormat = $"Key:{{0}}:User:{{1}}";
-        private const string REFRESH_TOKEN_PREFIX = "refresh_token:";
-        private const string USER_TOKENS_PREFIX = "user:refresh_tokens:";
+
 
         private readonly JsonSerializerOptions serializerOptions = new JsonSerializerOptions();
         private readonly IDatabase _redis;
         private readonly TimeSpan _refreshTokenTtl = TimeSpan.FromDays(30);
         private readonly IConfiguration _configuration;
-        public RefreshTokenService(IConnectionMultiplexer redis, IConfiguration configuration)
+        private readonly ICurrentUser _currentUser;
+        public RefreshTokenService(IConnectionMultiplexer redis, IConfiguration configuration, ICurrentUser currentUser)
         {
             _redis = redis.GetDatabase();
             _configuration = configuration;
             serializerOptions.Converters.Add(new ClaimConverter());
+            _currentUser = currentUser;
         }
 
         public async Task SetRefreshTokenAsync(string userCode, string refreshToken, List<Claim> claims)
@@ -62,6 +57,24 @@ namespace ForUser.Application.Login
             {
                 await _redis.HashDeleteAsync(refreshTokenListKey, key.Name);
             }
+        }
+
+        public async Task<List<string>> GetUserCacheInfoAsync(string userCode)
+        {
+            var key = string.Format(userRefreshTokenListKeyFormat, "UserPermission", _currentUser.Code);
+            var val = await _redis.StringGetAsync(key);
+            if (val.HasValue)
+            {
+                var userInfo = JsonSerializer.Deserialize<List<string>>(val);
+                return userInfo;
+            }
+            return null;
+        }
+
+        public async Task SetUserCacheInfoAsync( List<string> userPermissions)
+        {
+            var key = string.Format(userRefreshTokenListKeyFormat, "UserPermission", _currentUser.Code);
+            await _redis.StringSetAsync(key, JsonSerializer.Serialize(userPermissions));
         }
     }
 }

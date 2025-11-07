@@ -17,7 +17,7 @@ namespace ForUser.Domains.Commons
         long Id { get; }
 
         string Name { get; }
-
+        string Code { get; }
         string? SurName { get; }
 
         string? PhoneNumber { get; }

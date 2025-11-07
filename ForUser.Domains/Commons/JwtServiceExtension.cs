@@ -23,14 +23,21 @@ namespace ForUser.Domains.Commons
             {
                 o.TokenValidationParameters = new TokenValidationParameters()
                 {
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtsetting.Issuer,
-                    ValidAudience = jwtsetting.Audience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtsetting.SecurityKey)),
+                    //ValidateIssuerSigningKey = true,
+                    //ValidIssuer = jwtsetting.Issuer,
+                    //ValidAudience = jwtsetting.Audience,
+                    //IssuerSigningKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtsetting.SecurityKey)),
+                    //ValidateIssuer = true,
+                    //ValidateAudience = true,
+                    //ValidateLifetime = true,
+                    //ClockSkew = TimeSpan.Zero
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtsetting.Issuer,
+                    ValidAudience = jwtsetting.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtsetting.SecurityKey)),
                 };
             });
         }

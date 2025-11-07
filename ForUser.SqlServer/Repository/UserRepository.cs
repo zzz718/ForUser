@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ForUser.SqlServer.User
+namespace ForUser.SqlServer.Repository
 {
     public class UserRepository : EfCoreRepositoryBase<UserEntity, long>, IUserRepository
     {

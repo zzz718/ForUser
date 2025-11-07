@@ -1,6 +1,7 @@
 ﻿using ForUser.Application.Common;
 using ForUser.Application.Users;
 using ForUser.Application.Users.Dtos;
+using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons;
 using ForUser.Domains.Login;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -27,7 +28,7 @@ namespace ForUser.HttpApi.Controllers
             _userService = userService;
         }
         [HttpPost]
-        [Authorize]
+        [Permission("1","创建用户")]
         public async Task<MessageModel<string>> CreateUser([FromBody]CreateOrUpdateUserDto userDetail)
         {
             var result = await _userService.CreateUserAsync(userDetail);

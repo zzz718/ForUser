@@ -16,10 +16,7 @@ namespace ForUser.Domains
         {
             this.Id = Id;
         }
-        /// <summary>
-        /// 创建组织
-        /// </summary>
-        public long CreateOrg { get; set; }
+
         /// <summary>
         /// 创建人Id
         /// </summary>

@@ -19,4 +19,8 @@
     <ProjectReference Include="..\ForUser.Util\ForUser.Util.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Cache\Dtos\" />
+  </ItemGroup>
+
 </Project>

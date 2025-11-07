@@ -17,6 +17,9 @@ using System.Reflection;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using StackExchange.Redis;
 using System;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using ForUser.Application.Handle;
 
 namespace ForUser
 {
@@ -55,20 +58,18 @@ namespace ForUser
             });
             //添加Automapper
             builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
+
+            builder.Services.AddJwtService();
             //添加httpAccessor用于获取当前请求上下文来现在只是用来获取登录用户信息
             builder.Services.AddHttpContextAccessor();
-            // Add services to the container.
-            //builder.Services.AddRazorPages();
+
             builder.Services.AddRouting();
             builder.Services.AddControllers() .AddApplicationPart(typeof(UserController).Assembly);
             // ====== 添加 Swagger 服务 ======
             builder.Services.AddEndpointsApiExplorer(); // 必需：用于发现 API
 
-            //builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            //    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme
-            //    , options => builder.Configuration.Bind("JwtSettings", options));
 
-            builder.Services.AddJwtService();
+            builder.Services.AddLoginAuthorization();
             builder.Services.AddSwaggerGen(options =>
             {
                 // 遍历并应用Swagger分组信息
@@ -120,6 +121,7 @@ namespace ForUser
                     }
                  });
             });
+
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
             builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
             {
@@ -131,8 +133,6 @@ namespace ForUser
                 containerBuilder.RegisterModule<InfrastructureModule>();
 
                 containerBuilder.RegisterModule<ApplicationModule>();
-
-                
 
             });
             var app = builder.Build();
@@ -181,6 +181,23 @@ namespace ForUser
                     options.RoutePrefix = "swagger";
                 });
             }
+            #region test
+            app.Use(async (context, next) =>
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                Console.WriteLine($"Authorization Header: {authHeader}");
+
+                // 检查是否包含Bearer token
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
+                {
+                    var token = authHeader["Bearer ".Length..].Trim();
+                    Console.WriteLine($"Token length: {token.Length}");
+                    Console.WriteLine($"Token preview: {token[..20]}...");
+                }
+
+                await next();
+            });
+            #endregion
             app.UseAuthentication();
             app.UseAuthorization();
             app.MapControllers();

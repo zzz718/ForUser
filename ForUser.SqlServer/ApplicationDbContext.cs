@@ -1,8 +1,15 @@
 ﻿using ForUser.Domains;
 using ForUser.Domains.Commons;
+using ForUser.Domains.Commons.Object;
+using ForUser.Domains.Commons.ObjectFunc;
+using ForUser.Domains.Commons.Role;
+using ForUser.Domains.Commons.RoleObject;
+using ForUser.Domains.Commons.UserRole;
 using ForUser.Domains.Users;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,22 +20,32 @@ namespace ForUser.SqlServer
 {
     public class ApplicationDbContext:DbContext
     {
+        private readonly IHttpContextAccessor _httpContextAccessor;
         /// <summary>
         /// 数据库上下文构造函数
         /// </summary>
         /// <param name="options"></param>
         /// <param name="snowIdGenerator"></param>
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, SnowIdGenerator snowIdGenerator,ICurrentUser currentUser)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, SnowIdGenerator snowIdGenerator, IHttpContextAccessor httpContextAccessor)
         : base(options)
         {
             _snowIdGenerator = snowIdGenerator;
-            _currentUser = currentUser;
+            _httpContextAccessor = httpContextAccessor;
         }
         private readonly SnowIdGenerator _snowIdGenerator;
-        private readonly ICurrentUser _currentUser;
+        // 在需要时通过属性获取当前用户
+        public ICurrentUser _currentUser => _httpContextAccessor.HttpContext?.RequestServices.GetRequiredService<ICurrentUser>();
 
         public DbSet<UserEntity> Users { get; set; }
+        public DbSet<RoleEntity> Roles { get; set; }
 
+        public DbSet<UserRoleEntity> UserRoles { get; set; }
+
+        public DbSet<ObjectEntity>Objects { get; set; }
+
+        public DbSet<ObjectFuncEntity> ObjectFuncs { get; set; }
+
+        public DbSet<RoleObjectEntity> RoleObjects { get; set; }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

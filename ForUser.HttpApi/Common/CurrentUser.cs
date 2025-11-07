@@ -29,11 +29,13 @@ namespace ForUser.Domains.Commons
         {
             get
             {
-                if (long.TryParse(CurrentUserClaims?.FindFirst("id")?.Value, out var id))
+                if (long.TryParse(CurrentUserClaims?.FindFirst("Id")?.Value, out var id))
                     return id;
                 return 0;
             }
         }
+
+        public string Code  => CurrentUserClaims?.FindFirst("userCode")?.Value ?? string.Empty;
 
         public string Name => CurrentUserClaims?.FindFirst("userName")?.Value ?? string.Empty;
 
@@ -61,6 +63,7 @@ namespace ForUser.Domains.Commons
 
         public string[] Roles => CurrentUserClaims?.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray() ?? Array.Empty<string>();
 
+        
         public Claim? FindClaim(string claimType)
         {
             throw new NotImplementedException();
