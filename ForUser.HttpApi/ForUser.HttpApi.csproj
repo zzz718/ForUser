@@ -12,7 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Castle.Core.AsyncInterceptor" Version="2.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ForUser.Application\ForUser.Application.csproj" />
+    <ProjectReference Include="..\ForUser.SqlServer\ForUser.SqlServer.csproj" />
   </ItemGroup>
 
 </Project>

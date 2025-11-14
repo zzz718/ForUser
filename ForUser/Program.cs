@@ -35,8 +35,6 @@ namespace ForUser
             // 2. 替换默认日志提供者为 Serilog
             builder.Host.UseSerilog();
             // 3. 注册 Autofac 作为服务提供者
-            
-
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                         ?? throw new InvalidOperationException("Connection string'DefaultConnection' not found.");
@@ -125,7 +123,7 @@ namespace ForUser
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
             builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
             {
-                //containerBuilder.Populate(builder.Services);
+                
                 containerBuilder.RegisterType<CurrentUser>().As<ICurrentUser>().InstancePerLifetimeScope();
                 // 注册 SnowIdGenerator 为单例
                 containerBuilder.RegisterType<SnowIdGenerator>()

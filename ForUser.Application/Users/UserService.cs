@@ -48,16 +48,16 @@ namespace ForUser.Application.Users
             entity.PasswordHash = Guid.NewGuid().ToString("N");
             SetInitialPassword(entity);
             await _userRepository.AddAsync(entity);
-            if(await _userRepository.SaveAsync() > 0)
-            {
+            //if(await _userRepository.SaveAsync() > 0)
+            //{
 
-                return "保存成功";
-            }
-            else
-            {
-                throw new Exception("保存失败");
-            }
-
+            //    return "保存成功";
+            //}
+            //else
+            //{
+            //    throw new Exception("保存失败");
+            //}
+            return "保存成功";
         }
 
         public Task<bool> DeleteUserAsync(int id)

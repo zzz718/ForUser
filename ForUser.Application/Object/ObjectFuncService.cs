@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace ForUser.Application.Object
 {
-    class ObjectFuncService
+    public class ObjectFuncService
     {
     }
 }
