@@ -15,14 +15,13 @@ namespace ForUser.SqlServer
         private readonly ApplicationDbContext _dbContext;
         private IDbContextTransaction? _transaction;
         private bool _disposed;
-        private bool _transactionBegun;
         private readonly SemaphoreSlim _lock = new(1, 1);
         public EfCoreUnitOfWork(ApplicationDbContext dbContext)
         {
             _dbContext = dbContext;
         }
 
-        public bool HasTransaction => _transaction != null && _transactionBegun;
+        public bool HasTransaction => _transaction != null && _transaction.GetDbTransaction().Connection != null;
 
         public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
         {
@@ -46,7 +45,7 @@ namespace ForUser.SqlServer
             await _lock.WaitAsync();
             try
             {
-                if (_transaction != null && _transactionBegun)
+                if (_transaction != null)
                 {
                     await _transaction.CommitAsync();
                     await _transaction.DisposeAsync();
@@ -65,7 +64,7 @@ namespace ForUser.SqlServer
             await _lock.WaitAsync();
             try
             {
-                if (_transaction != null && _transactionBegun)
+                if (_transaction != null )
                 {
                     await _transaction.RollbackAsync();
                     await _transaction.DisposeAsync();
