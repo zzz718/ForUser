@@ -1,19 +1,23 @@
 ﻿using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using ForUser.Domains.Kernels;
+using Microsoft.Extensions.Logging;
 
 
 namespace ForUser.Application.SK
 {
     public class SemanticChatAppService : ISemanticChatAppService
     {
-        private readonly Kernel _kernel;
+        private readonly KernelFactory _kernelFactory;
         private readonly IChatCompletionService _chatCompletionService;
         private readonly ChatHistory _history;
         private readonly PromptExecutionSettings _settings;
-        public SemanticChatAppService(Kernel kernel) // 注入 Singleton Kernel
+        private Kernel _kernel;
+        public SemanticChatAppService(KernelFactory kernelFactory) // 注入 Singleton Kernel
         {
-            _kernel = kernel;
+            _kernelFactory = kernelFactory;
+            _kernel = _kernelFactory.GetKernelForModel("default");
             _chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>(); // 从 Kernel 获取服务
 
             _history = new ChatHistory();
@@ -39,7 +43,7 @@ namespace ForUser.Application.SK
                 executionSettings: _settings,
                 kernel: _kernel // 传递 Kernel 以便工具调用时使用
             );
-
+            
             var response = chatMessage.Content ?? "No response from AI.";
             _history.AddAssistantMessage(response);
 

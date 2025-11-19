@@ -1,30 +1,21 @@
 ﻿using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Castle.DynamicProxy;
+using ForUser.Application.Handle;
 using ForUser.Application.Users.Profiles;
 using ForUser.Domains.Commons;
+using ForUser.Domains.Kernels;
 using ForUser.HttpApi.Controllers;
+using ForUser.HttpApi.Interceptors;
 using ForUser.Modules;
 using ForUser.SqlServer;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing.Template;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using StackExchange.Redis;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using StackExchange.Redis;
-using System;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using ForUser.Application.Handle;
-using Castle.DynamicProxy;
-using ForUser.HttpApi.Interceptors;
-using ForUser.Domains.Kernels;
-using Microsoft.SemanticKernel;
-using ForUser.Application.SK;
 
 namespace ForUser
 {
@@ -77,17 +68,16 @@ namespace ForUser
             builder.Services.AddHttpClient("SemanticKernelLLM", client =>
             {
                 // --- 设置 BaseAddress ---
-                client.BaseAddress = new Uri("http://localhost:11434/v1"); // 示例地址
-                // --- 添加默认 Headers ---
-                //client.DefaultRequestHeaders.Add("User-Agent", "MyABPApp-SemanticKernel/1.0");
+                client.BaseAddress = new Uri(builder.Configuration["ModelInfo:default:Endpoint"] ?? "http://localhost:11434/v1"); // 示例地址
+
                 client.Timeout = TimeSpan.FromMinutes(15);
             })
-            // 你仍然可以配置 HttpMessageHandler (如果需要)
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
                 ClientCertificateOptions = ClientCertificateOption.Automatic,
             });
-            builder.Services.AddSemanticKernel();
+            builder.Services.AddSingleton<KernelFactory>();
+            //builder.Services.AddSemanticKernel();
             builder.Services.AddSwaggerGen(options =>
             {
                 // 遍历并应用Swagger分组信息

@@ -10,6 +10,6 @@ namespace ForUser.Domains.Kernels
     {
         public string ModelId { get; set; }
         public string Endpoint { get; set; }
-        public string Apikey { get; set; }
+        public string ApiKey { get; set; }
     }
 }
