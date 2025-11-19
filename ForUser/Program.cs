@@ -22,6 +22,9 @@ using System.Text;
 using ForUser.Application.Handle;
 using Castle.DynamicProxy;
 using ForUser.HttpApi.Interceptors;
+using ForUser.Domains.Kernels;
+using Microsoft.SemanticKernel;
+using ForUser.Application.SK;
 
 namespace ForUser
 {
@@ -70,6 +73,21 @@ namespace ForUser
 
 
             builder.Services.AddLoginAuthorization();
+            // 1. 在 ConfigureServices 中配置 Named HttpClient
+            builder.Services.AddHttpClient("SemanticKernelLLM", client =>
+            {
+                // --- 设置 BaseAddress ---
+                client.BaseAddress = new Uri("http://localhost:11434/v1"); // 示例地址
+                // --- 添加默认 Headers ---
+                //client.DefaultRequestHeaders.Add("User-Agent", "MyABPApp-SemanticKernel/1.0");
+                client.Timeout = TimeSpan.FromMinutes(15);
+            })
+            // 你仍然可以配置 HttpMessageHandler (如果需要)
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ClientCertificateOptions = ClientCertificateOption.Automatic,
+            });
+            builder.Services.AddSemanticKernel();
             builder.Services.AddSwaggerGen(options =>
             {
                 // 遍历并应用Swagger分组信息
@@ -123,6 +141,7 @@ namespace ForUser
             });
 
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+            
             builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
             {
                 
