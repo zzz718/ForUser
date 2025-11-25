@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace ForUser.SqlServer
 {
-    public static class DbContextModelCreatingExtensions
+    public static class SqlServerDbContextModelCreatingExtensions
     {
         public static void Configure(this ModelBuilder builder)
         {

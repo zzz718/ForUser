@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ForUser.SqlServer.Repository
 {
-    public class ObjectFuncRepository : EfCoreRepositoryBase<ObjectFuncEntity, long>, IObjectFuncRepository
+    public class ObjectFuncRepository : SqlServerEfCoreRepositoryBase<ObjectFuncEntity, long>, IObjectFuncRepository
     {
         public ObjectFuncRepository(ApplicationDbContext context) : base(context)
         {

@@ -15,8 +15,6 @@ namespace ForUser.Application.Login
 {
     public class MethodPermissionCheckService : IMethodPermissionCheckService
     {
-
-
         private readonly IRefreshTokenService _refreshTokenService;
         private readonly ICurrentUser _currentUser;
 

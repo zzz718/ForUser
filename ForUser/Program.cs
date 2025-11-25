@@ -1,25 +1,23 @@
-using Autofac;
+ï»¿using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Castle.DynamicProxy;
+using ForUser.Application.Handle;
 using ForUser.Application.Users.Profiles;
 using ForUser.Domains.Commons;
+using ForUser.Domains.Kernels;
 using ForUser.HttpApi.Controllers;
+using ForUser.HttpApi.Interceptors;
 using ForUser.Modules;
+using ForUser.PostgreSQL;
 using ForUser.SqlServer;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing.Template;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using StackExchange.Redis;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using System.Reflection;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using StackExchange.Redis;
-using System;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using ForUser.Application.Handle;
 
 namespace ForUser
 {
@@ -32,22 +30,25 @@ namespace ForUser
             Log.Logger = new LoggerConfiguration()
                 .ReadFrom.Configuration(builder.Configuration)
                 .CreateBootstrapLogger();
-            // 2. Ìæ»»Ä¬ÈÏÈÕÖ¾Ìá¹©ÕßÎª Serilog
+            // 2. æ›¿æ¢é»˜è®¤æ—¥å¿—æä¾›è€…ä¸º Serilog
             builder.Host.UseSerilog();
-            // 3. ×¢²á Autofac ×÷Îª·şÎñÌá¹©Õß
-            
-
+            // 3. æ³¨å†Œ Autofac ä½œä¸ºæœåŠ¡æä¾›è€…
 
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                         ?? throw new InvalidOperationException("Connection string'DefaultConnection' not found.");
 
+            var postgreSQLConnectionString = builder.Configuration.GetConnectionString("PostgreSQLConnection")
+                                        ?? throw new InvalidOperationException("Connection string'PostgreSQLConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString).LogTo(Console.WriteLine, LogLevel.Information));
+            builder.Services.AddDbContext<PostgreSQLDbContext>(options => 
+                options.UseNpgsql(postgreSQLConnectionString,npgsql => npgsql.UseVector()).LogTo(Console.WriteLine, LogLevel.Information)); // å¯ç”¨Vectoræ”¯æŒ
+
             // redis
             builder.Services.AddSingleton<IConnectionMultiplexer>(factory =>
             {
                 var redisConfig = builder.Configuration["Redis:Configuration"];
-                // »ò£ºvar redisConfig = builder.Configuration.GetSection("Redis:Configuration").Value;
+                // æˆ–ï¼švar redisConfig = builder.Configuration.GetSection("Redis:Configuration").Value;
 
                 if (string.IsNullOrEmpty(redisConfig))
                     throw new InvalidOperationException("Redis configuration is missing in appsettings.json under 'Redis:Configuration'.");
@@ -56,23 +57,37 @@ namespace ForUser
                 cfg.ResolveDns = true;
                 return ConnectionMultiplexer.Connect(cfg);
             });
-            //Ìí¼ÓAutomapper
+            //æ·»åŠ Automapper
             builder.Services.AddAutoMapper(typeof(UserProfile).Assembly);
 
             builder.Services.AddJwtService();
-            //Ìí¼ÓhttpAccessorÓÃÓÚ»ñÈ¡µ±Ç°ÇëÇóÉÏÏÂÎÄÀ´ÏÖÔÚÖ»ÊÇÓÃÀ´»ñÈ¡µÇÂ¼ÓÃ»§ĞÅÏ¢
+            //æ·»åŠ httpAccessorç”¨äºè·å–å½“å‰è¯·æ±‚ä¸Šä¸‹æ–‡æ¥ç°åœ¨åªæ˜¯ç”¨æ¥è·å–ç™»å½•ç”¨æˆ·ä¿¡æ¯
             builder.Services.AddHttpContextAccessor();
 
             builder.Services.AddRouting();
             builder.Services.AddControllers() .AddApplicationPart(typeof(UserController).Assembly);
-            // ====== Ìí¼Ó Swagger ·şÎñ ======
-            builder.Services.AddEndpointsApiExplorer(); // ±ØĞè£ºÓÃÓÚ·¢ÏÖ API
+            // ====== æ·»åŠ  Swagger æœåŠ¡ ======
+            builder.Services.AddEndpointsApiExplorer(); // å¿…éœ€ï¼šç”¨äºå‘ç° API
 
 
             builder.Services.AddLoginAuthorization();
+            // 1. åœ¨ ConfigureServices ä¸­é…ç½® Named HttpClient
+            builder.Services.AddHttpClient("SemanticKernelLLM", client =>
+            {
+                // --- è®¾ç½® BaseAddress ---
+                client.BaseAddress = new Uri(builder.Configuration["ModelInfo:default:Endpoint"] ?? "http://localhost:11434/v1"); // ç¤ºä¾‹åœ°å€
+
+                client.Timeout = TimeSpan.FromMinutes(15);
+            })
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            {
+                ClientCertificateOptions = ClientCertificateOption.Automatic,
+            });
+            builder.Services.AddSingleton<KernelFactory>();
+            //builder.Services.AddSemanticKernel();
             builder.Services.AddSwaggerGen(options =>
             {
-                // ±éÀú²¢Ó¦ÓÃSwagger·Ö×éĞÅÏ¢
+                // éå†å¹¶åº”ç”¨Swaggeråˆ†ç»„ä¿¡æ¯
                 SwaggerSetting.ApiInfos.ForEach(x =>
                 {
                     options.SwaggerDoc(x.UrlPrefix, x.OpenApiInfo);
@@ -105,7 +120,7 @@ namespace ForUser
                             "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
                 });
 
-                //ÈÃswagger×ñÊØjwtĞ­Òé
+                //è®©swaggeréµå®ˆjwtåè®®
                 options.AddSecurityRequirement(new OpenApiSecurityRequirement
                  {
                    {
@@ -123,16 +138,33 @@ namespace ForUser
             });
 
             builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
+            
             builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
             {
-                //containerBuilder.Populate(builder.Services);
+                
                 containerBuilder.RegisterType<CurrentUser>().As<ICurrentUser>().InstancePerLifetimeScope();
-                // ×¢²á SnowIdGenerator Îªµ¥Àı
+                // æ³¨å†Œ SnowIdGenerator ä¸ºå•ä¾‹
                 containerBuilder.RegisterType<SnowIdGenerator>()
-                                 .SingleInstance(); // ¡û Autofac µÄ Singleton
+                                 .SingleInstance(); // â† Autofac çš„ Singleton
                 containerBuilder.RegisterModule<InfrastructureModule>();
 
+                containerBuilder.RegisterModule<InterceptorModule>();
+
+                
                 containerBuilder.RegisterModule<ApplicationModule>();
+
+                
+                containerBuilder.RegisterBuildCallback(container =>
+                {
+                    var interceptor = container.Resolve<IInterceptor>() as UnitOfWorkInterceptor;
+                    if (interceptor != null)
+                    {
+                        var serviceProvider = container.Resolve<IServiceProvider>();
+                        var logger = serviceProvider.GetRequiredService<ILogger<UnitOfWorkInterceptor>>();
+
+                        Console.WriteLine(" æ‹¦æˆªå™¨ä¾èµ–æ³¨å…¥å®Œæˆ");
+                    }
+                });
 
             });
             var app = builder.Build();
@@ -147,33 +179,33 @@ namespace ForUser
             }
 
             app.UseHttpsRedirection();
-            // 4. ÆôÓÃ HTTP ÇëÇóÈÕÖ¾£¨¿ÉÑ¡µ«ÍÆ¼ö£©
+            // 4. å¯ç”¨ HTTP è¯·æ±‚æ—¥å¿—ï¼ˆå¯é€‰ä½†æ¨èï¼‰
             app.UseSerilogRequestLogging(options =>
             {
-                // ¿ÉÑ¡£º×Ô¶¨ÒåÕï¶ÏÉÏÏÂÎÄ£¨ÀıÈçÌí¼ÓÓÃ»§ID£©
+                // å¯é€‰ï¼šè‡ªå®šä¹‰è¯Šæ–­ä¸Šä¸‹æ–‡ï¼ˆä¾‹å¦‚æ·»åŠ ç”¨æˆ·IDï¼‰
                 options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
                 {
-                    // ¿ÉÑ¡£ºÌí¼ÓÆäËû×Ö¶Î£¨Èç UserId£©
+                    // å¯é€‰ï¼šæ·»åŠ å…¶ä»–å­—æ®µï¼ˆå¦‚ UserIdï¼‰
                     var userId = httpContext.User.FindFirst("sub")?.Value;
                     if (!string.IsNullOrEmpty(userId))
                     {
                         diagnosticContext.Set("UserId", userId);
                     }
 
-                    // RequestId ÒÑ×Ô¶¯Ìí¼Ó£¬ÎŞĞèÊÖ¶¯ÉèÖÃ£¡
-                    // Êµ¼ÊÉÏ£¬Serilog ÄÚ²¿ÒÑÖ´ĞĞ£ºdiagnosticContext.Set("RequestId", httpContext.TraceIdentifier);
+                    // RequestId å·²è‡ªåŠ¨æ·»åŠ ï¼Œæ— éœ€æ‰‹åŠ¨è®¾ç½®ï¼
+                    // å®é™…ä¸Šï¼ŒSerilog å†…éƒ¨å·²æ‰§è¡Œï¼šdiagnosticContext.Set("RequestId", httpContext.TraceIdentifier);
                 };
             });
             app.UseStaticFiles();
 
             app.UseRouting();
-            // ÔÚ UseSwaggerUI ÖĞ£º
+            // åœ¨ UseSwaggerUI ä¸­ï¼š
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI(options =>
                 {
-                    // ±éÀú·Ö×éĞÅÏ¢£¬Éú³ÉJson
+                    // éå†åˆ†ç»„ä¿¡æ¯ï¼Œç”ŸæˆJson
                     SwaggerSetting.ApiInfos.ForEach(x =>
                     {
                         options.SwaggerEndpoint($"/swagger/{x.UrlPrefix}/swagger.json", x.Name);
@@ -187,7 +219,7 @@ namespace ForUser
                 var authHeader = context.Request.Headers["Authorization"].ToString();
                 Console.WriteLine($"Authorization Header: {authHeader}");
 
-                // ¼ì²éÊÇ·ñ°üº¬Bearer token
+                // æ£€æŸ¥æ˜¯å¦åŒ…å«Bearer token
                 if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
                 {
                     var token = authHeader["Bearer ".Length..].Trim();
@@ -203,7 +235,7 @@ namespace ForUser
             app.MapControllers();
             //app.MapRazorPages();
             
-            // ÖØ¶¨Ïòµ½ Swagger
+            // é‡å®šå‘åˆ° Swagger
             app.Use(async (context, next) =>
             {
                 if (context.Request.Path == "/")

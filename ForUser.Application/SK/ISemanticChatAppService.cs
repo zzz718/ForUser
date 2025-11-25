@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ForUser.Application.Object
+namespace ForUser.Application.SK
 {
-    public class ObjectFuncService
+    public interface ISemanticChatAppService
     {
+        Task<string> SendMessageAsync(string userInput);
     }
 }

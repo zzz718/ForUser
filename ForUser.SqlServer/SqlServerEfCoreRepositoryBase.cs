@@ -6,15 +6,16 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
+using EFCore.BulkExtensions;
 
 namespace ForUser.SqlServer
 {
-    public class EfCoreRepositoryBase<TEntity, TKey> : IRepository<TEntity, TKey>
+    public class SqlServerEfCoreRepositoryBase<TEntity, TKey> : IRepository<TEntity, TKey>
         where TEntity:class
     {
         protected readonly ApplicationDbContext _context;
 
-        public EfCoreRepositoryBase(ApplicationDbContext context)
+        public SqlServerEfCoreRepositoryBase(ApplicationDbContext context)
         {
             _context = context;
         }
@@ -23,7 +24,28 @@ namespace ForUser.SqlServer
         {
             await _context.Set<TEntity>().AddAsync(entity);
         }
+        public async Task BulkInsertAsync(IEnumerable<TEntity> entities)
+        {
+            if (entities == null || !entities.Any())
+                return;
 
+            try
+            {
+                await _context.BulkInsertAsync(entities);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is KeyNotFoundException)
+            {
+                // 记录详细的错误信息
+                Console.WriteLine("Bulk insert failed. Entity type: {EntityType}, Count: {Count}",
+                    typeof(TEntity).Name, entities.Count());
+
+                // 尝试获取表名映射
+                var tableName = _context.Model.FindEntityType(typeof(TEntity))?.GetTableName();
+                Console.WriteLine("Table name mapping: {TableName}", tableName ?? "Not found");
+
+                throw new ApplicationException($"Bulk insert failed for {typeof(TEntity).Name}: {ex.Message}", ex);
+            }
+        }
         public Task DeleteAsync(TEntity entity)
         {
             _context.Set<TEntity>().Remove(entity);
@@ -64,6 +86,11 @@ namespace ForUser.SqlServer
         public async Task<int> SaveAsync()
         {
             return await _context.SaveChangesAsync();
+        }
+
+        public Task AddRangeAsync(IEnumerable<TEntity> entities)
+        {
+            throw new NotImplementedException();
         }
     }
 }

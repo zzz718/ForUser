@@ -11,6 +11,8 @@ namespace ForUser.Domains
     {
         Task<TEntity> GetByIdAsync(TKey id);
         Task AddAsync(TEntity entity);
+        Task AddRangeAsync(IEnumerable<TEntity> entities);
+        Task BulkInsertAsync(IEnumerable<TEntity> entities);
         Task UpdateAsync(TEntity entity);
         Task DeleteAsync(TEntity entity);
 

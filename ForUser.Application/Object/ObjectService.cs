@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.Internal.Mappers;
 using ForUser.Application.Object.Dtos;
+using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons.Object;
 using ForUser.Domains.Users;
 using System;
@@ -30,7 +31,7 @@ namespace ForUser.Application.Object
             }
             return _mapper.Map( objectEntity, new ObjectView());
         }
-
+        
         public async Task CreateObjectAsync(CreateOrUpdateObjectDto objectDto)
         {
             var objectEntity = await _objectRepository.FindAsync( x=>x.Code == objectDto.Code);
@@ -40,13 +41,13 @@ namespace ForUser.Application.Object
             }
             ObjectEntity insertObject = _mapper.Map(objectDto,new ObjectEntity());
             await _objectRepository.AddAsync(insertObject);
-            if (await _objectRepository.SaveAsync() > 0)
-            {
-            }
-            else
-            {
-                throw new Exception("保存失败");
-            }
+            //if (await _objectRepository.SaveAsync() > 0)
+            //{
+            //}
+            //else
+            //{
+            //    throw new Exception("保存失败");
+            //}
         }
     }
 }

@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="8.4.0" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Autofac.Extras.DynamicProxy" Version="7.1.0" />
     <PackageReference Include="AutoMapper" Version="13.0.1" />
     <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.0" />
@@ -20,6 +21,7 @@
   <ItemGroup>
     <ProjectReference Include="..\ForUser.Application\ForUser.Application.csproj" />
     <ProjectReference Include="..\ForUser.HttpApi\ForUser.HttpApi.csproj" />
+    <ProjectReference Include="..\ForUser.PostgreSQL\ForUser.PostgreSQL.csproj" />
     <ProjectReference Include="..\ForUser.SqlServer\ForUser.SqlServer.csproj" />
   </ItemGroup>
 

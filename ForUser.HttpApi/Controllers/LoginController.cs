@@ -58,7 +58,7 @@ namespace ForUser.HttpApi.Controllers
             {
                 Id = Convert.ToInt64(token.Claims.FirstOrDefault(f => f.Type == "Id").Value),
                 UserName = token.Claims.FirstOrDefault(f => f.Type == "UserName").Value,
-                Password = Convert.ToString(token.Claims.FirstOrDefault(f => f.Type == "Password").Value),
+                UserCode = token.Claims.FirstOrDefault(f => f.Type == "UserCode").Value
             };
             return loginResult;
         }
