@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace ForUser.SqlServer.Repository
 {
-    public class UserRepository : EfCoreRepositoryBase<UserEntity, long>, IUserRepository
+    public class UserRepository : SqlServerEfCoreRepositoryBase<UserEntity, long>, IUserRepository
     {
         public UserRepository(ApplicationDbContext context) : base(context)
         {

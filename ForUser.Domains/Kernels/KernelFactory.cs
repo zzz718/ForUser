@@ -61,13 +61,35 @@ namespace ForUser.Domains.Kernels
             var httpClient = CreateHttpClientForModel(modelConfig);
 
             // 构建Kernel
-            var builder = Kernel.CreateBuilder()
-                .AddOpenAIChatCompletion(
+            //var builder = Kernel.CreateBuilder()
+            //    .AddOpenAIChatCompletion(
+            //        modelId: modelConfig.ModelId,
+            //        endpoint: new Uri(modelConfig.Endpoint),
+            //        apiKey: modelConfig.ApiKey ?? string.Empty,
+            //        httpClient: httpClient
+            //    );
+            var builder = Kernel.CreateBuilder();
+            if (modelName.Equals("embedding", StringComparison.OrdinalIgnoreCase))
+            {
+                // ✅ 为embedding模型注册文本嵌入服务
+                builder.AddOpenAITextEmbeddingGeneration(
+                    modelId: modelConfig.ModelId,
+                    apiKey: modelConfig.ApiKey ?? string.Empty,
+                    httpClient: httpClient
+                );
+                _logger.LogInformation("Registered ITextEmbeddingGenerationService for model: {ModelName}", modelName);
+            }
+            else
+            {
+                // 为其他模型注册聊天完成服务
+                builder.AddOpenAIChatCompletion(
                     modelId: modelConfig.ModelId,
                     endpoint: new Uri(modelConfig.Endpoint),
                     apiKey: modelConfig.ApiKey ?? string.Empty,
                     httpClient: httpClient
                 );
+                _logger.LogInformation("Registered ITextGenerationService for model: {ModelName}", modelName);
+            }
 
             return builder.Build();
         }

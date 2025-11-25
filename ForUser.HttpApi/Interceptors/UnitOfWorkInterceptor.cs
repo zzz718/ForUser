@@ -1,6 +1,7 @@
 ﻿using Castle.DynamicProxy;
 using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons.UnitOfWork;
+using ForUser.PostgreSQL;
 using ForUser.SqlServer;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -218,21 +219,51 @@ namespace ForUser.HttpApi.Interceptors
 
         private (IUnitOfWork,bool) GetOrCreateUnitOfWork(IInvocation invocation)
         {
+            var dbContextType = GetDbContextType(invocation.InvocationTarget.GetType());
             // 尝试从当前作用域获取工作单元
             var httpContextAccessor = _serviceProvider.GetService<IHttpContextAccessor>();
             if (httpContextAccessor?.HttpContext != null)
             {
-                var unitOfWork = httpContextAccessor.HttpContext.RequestServices.GetService<IUnitOfWork>();
-                if (unitOfWork != null)
+                if (dbContextType == 1)
                 {
-                    return (unitOfWork,false);
+                    var unitOfWork = httpContextAccessor.HttpContext.RequestServices.GetService<IUnitOfWork<PostgreSQLDbContext>>();
+                    if (unitOfWork != null)
+                    {
+                        return (unitOfWork, false);
+                    }
                 }
+                else
+                {
+                    var unitOfWork = httpContextAccessor.HttpContext.RequestServices.GetService<IUnitOfWork<ApplicationDbContext>>();
+                    if (unitOfWork != null)
+                    {
+                        return (unitOfWork, false);
+                    }
+                }
+                
             }
 
             // 创建新的工作单元
-            var dbContext = _serviceProvider.GetRequiredService<ApplicationDbContext>();
-            return (new EfCoreUnitOfWork(dbContext),true);
+            if (dbContextType == 1)
+            {
+                var dbContext = _serviceProvider.GetRequiredService<PostgreSQLDbContext>();
+                return (new EfCoreUnitOfWork<PostgreSQLDbContext>(dbContext), true);
+            }
+            else
+            {
+                var dbContext = _serviceProvider.GetRequiredService<ApplicationDbContext>();
+                return (new EfCoreUnitOfWork<ApplicationDbContext>(dbContext), true);
+            }
         }
 
+
+        private int GetDbContextType(Type serviceType)
+        {
+            if (serviceType.Name.Contains("KnowLedge") || serviceType.Name.Contains("Embedding"))
+            {
+                return 1;
+            }
+            return 0;
+        }
     }
 }

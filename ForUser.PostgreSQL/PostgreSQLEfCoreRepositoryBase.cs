@@ -1,0 +1,97 @@
+﻿using ForUser.Domains;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Text;
+using System.Threading.Tasks;
+using EFCore.BulkExtensions;
+
+namespace ForUser.PostgreSQL
+{
+    public class PostgreSQLEfCoreRepositoryBase<TEntity, TKey> : IRepository<TEntity, TKey>
+        where TEntity : class
+    {
+        protected readonly PostgreSQLDbContext _context;
+
+        public PostgreSQLEfCoreRepositoryBase(PostgreSQLDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task AddAsync(TEntity entity)
+        {
+            await _context.Set<TEntity>().AddAsync(entity);
+        }
+
+        public async Task AddRangeAsync(IEnumerable<TEntity> entities)
+        {
+            await _context.Set<TEntity>().AddRangeAsync(entities);
+        }
+
+        public async Task BulkInsertAsync(IEnumerable<TEntity> entities)
+        {
+            if (entities == null || !entities.Any())
+                return;
+
+            try
+            {
+                await _context.BulkInsertAsync(entities);
+            }
+            catch (Exception ex) when (ex is ArgumentException || ex is KeyNotFoundException)
+            {
+                // 记录详细的错误信息
+                Console.WriteLine("Bulk insert failed. Entity type: {EntityType}, Count: {Count}",
+                    typeof(TEntity).Name, entities.Count());
+
+                // 尝试获取表名映射
+                var tableName = _context.Model.FindEntityType(typeof(TEntity))?.GetTableName();
+                Console.WriteLine("Table name mapping: {TableName}", tableName ?? "Not found");
+
+                throw new ApplicationException($"Bulk insert failed for {typeof(TEntity).Name}: {ex.Message}", ex);
+            }
+        }
+        public Task DeleteAsync(TEntity entity)
+        {
+            _context.Set<TEntity>().Remove(entity);
+            return Task.CompletedTask;
+        }
+
+        public async Task<TEntity?> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().FirstOrDefaultAsync(predicate);
+        }
+
+        public async Task<List<TEntity>> FindListAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().Where(predicate).ToListAsync();
+        }
+
+        public async Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return await _context.Set<TEntity>().AnyAsync(predicate);
+        }
+
+        public async Task<TEntity> GetByIdAsync(TKey id)
+        {
+            return await _context.Set<TEntity>().FindAsync(id);
+        }
+
+        public Task UpdateAsync(TEntity entity)
+        {
+            _context.Set<TEntity>().Update(entity);
+            return Task.CompletedTask;
+        }
+
+        public IQueryable<TEntity> AsNoTracking()
+        {
+            return _context.Set<TEntity>().AsNoTracking<TEntity>();
+        }
+
+        public async Task<int> SaveAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
+    }
+}

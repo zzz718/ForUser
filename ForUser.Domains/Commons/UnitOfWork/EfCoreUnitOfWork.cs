@@ -1,22 +1,21 @@
-﻿using ForUser.Domains.Commons.UnitOfWork;
+﻿using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Data;
 
-namespace ForUser.SqlServer
+namespace ForUser.Domains.Commons.UnitOfWork
 {
-    public class EfCoreUnitOfWork : IUnitOfWork
+    public class EfCoreUnitOfWork<TContext> : IUnitOfWork<TContext> where TContext : DbContext
     {
-        private readonly ApplicationDbContext _dbContext;
+        private readonly TContext _dbContext;
         private IDbContextTransaction? _transaction;
         private bool _disposed;
         private readonly SemaphoreSlim _lock = new(1, 1);
-        public EfCoreUnitOfWork(ApplicationDbContext dbContext)
+        public EfCoreUnitOfWork(TContext dbContext)
         {
             _dbContext = dbContext;
         }
@@ -37,7 +36,7 @@ namespace ForUser.SqlServer
             {
                 _lock.Release();
             }
-            
+
         }
 
         public async Task CommitTransactionAsync()
@@ -56,7 +55,7 @@ namespace ForUser.SqlServer
             {
                 _lock.Release();
             }
-            
+
         }
 
         public async Task RollbackTransactionAsync()
@@ -64,7 +63,7 @@ namespace ForUser.SqlServer
             await _lock.WaitAsync();
             try
             {
-                if (_transaction != null )
+                if (_transaction != null)
                 {
                     await _transaction.RollbackAsync();
                     await _transaction.DisposeAsync();

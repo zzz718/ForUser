@@ -8,9 +8,11 @@ using ForUser.Domains.Kernels;
 using ForUser.HttpApi.Controllers;
 using ForUser.HttpApi.Interceptors;
 using ForUser.Modules;
+using ForUser.PostgreSQL;
 using ForUser.SqlServer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using StackExchange.Redis;
@@ -35,8 +37,13 @@ namespace ForUser
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
                                         ?? throw new InvalidOperationException("Connection string'DefaultConnection' not found.");
 
+            var postgreSQLConnectionString = builder.Configuration.GetConnectionString("PostgreSQLConnection")
+                                        ?? throw new InvalidOperationException("Connection string'PostgreSQLConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+                options.UseSqlServer(connectionString).LogTo(Console.WriteLine, LogLevel.Information));
+            builder.Services.AddDbContext<PostgreSQLDbContext>(options => 
+                options.UseNpgsql(postgreSQLConnectionString,npgsql => npgsql.UseVector()).LogTo(Console.WriteLine, LogLevel.Information)); // 启用Vector支持
+
             // redis
             builder.Services.AddSingleton<IConnectionMultiplexer>(factory =>
             {

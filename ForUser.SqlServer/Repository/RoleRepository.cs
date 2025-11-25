@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ForUser.SqlServer.Repository
 {
-    public class RoleRepository : EfCoreRepositoryBase<RoleEntity, long>, IRoleRepository
+    public class RoleRepository : SqlServerEfCoreRepositoryBase<RoleEntity, long>, IRoleRepository
     {
         public RoleRepository(ApplicationDbContext context) : base(context)
         {
