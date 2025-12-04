@@ -378,4 +378,68 @@ WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW
 ON [PRIMARY]
 GO
 ```
+## Postgres数据库建表sql
+### Conversation_Entity
+```bash
+DROP TABLE IF EXISTS "public"."Conversation_Entity";
+CREATE TABLE "public"."Conversation_Entity" (
+  "Id" int8 NOT NULL,
+  "Title" varchar(255) COLLATE "pg_catalog"."default",
+  "CreateId" int8 NOT NULL,
+  "CreateName" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "CreateTime" timestamp(6) NOT NULL
+)
+;
+COMMENT ON COLUMN "public"."Conversation_Entity"."Id" IS '对话Id';
+COMMENT ON COLUMN "public"."Conversation_Entity"."Title" IS '对话标题';
+COMMENT ON COLUMN "public"."Conversation_Entity"."CreateId" IS '创建人Id';
+COMMENT ON COLUMN "public"."Conversation_Entity"."CreateName" IS '创建人名称';
+COMMENT ON COLUMN "public"."Conversation_Entity"."CreateTime" IS '创建时间';
+
+-- ----------------------------
+-- Primary Key structure for table Conversation_Entity
+-- ----------------------------
+ALTER TABLE "public"."Conversation_Entity" ADD CONSTRAINT "Conversation_Entity_pkey" PRIMARY KEY ("Id");
+```
+### Message_Entity
+```bash
+DROP TABLE IF EXISTS "public"."Message_Entity";
+CREATE TABLE "public"."Message_Entity" (
+  "Id" int8 NOT NULL,
+  "Content" varchar(15000) COLLATE "pg_catalog"."default" NOT NULL,
+  "ConversationId" int8 NOT NULL,
+  "Timestamp" date NOT NULL,
+  "Sequence" int4 NOT NULL,
+  "Role" varchar(255) COLLATE "pg_catalog"."default"
+)
+;
+COMMENT ON COLUMN "public"."Message_Entity"."Id" IS '对话明细Id';
+COMMENT ON COLUMN "public"."Message_Entity"."Content" IS '对话内容';
+COMMENT ON COLUMN "public"."Message_Entity"."ConversationId" IS '对话Id';
+COMMENT ON COLUMN "public"."Message_Entity"."Timestamp" IS '对话时间';
+COMMENT ON COLUMN "public"."Message_Entity"."Sequence" IS '本次总对话顺序';
+COMMENT ON COLUMN "public"."Message_Entity"."Role" IS '发送对话的角色';
+
+-- ----------------------------
+-- Primary Key structure for table Message_Entity
+-- ----------------------------
+ALTER TABLE "public"."Message_Entity" ADD CONSTRAINT "Message_Entity_pkey" PRIMARY KEY ("Id");
+```
+### vector_knowledge_doc_vector
+```bash
+DROP TABLE IF EXISTS "public"."vector_knowledge_doc_vector";
+CREATE TABLE "public"."vector_knowledge_doc_vector" (
+  "Id" int8 NOT NULL,
+  "Doc_Id" int8 NOT NULL,
+  "Doc_Content" text COLLATE "pg_catalog"."default" NOT NULL,
+  "Embedding" "public"."vector" NOT NULL,
+  "Doc_Name" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+
+-- ----------------------------
+-- Primary Key structure for table vector_knowledge_doc_vector
+-- ----------------------------
+ALTER TABLE "public"."vector_knowledge_doc_vector" ADD CONSTRAINT "vector_knowledge_doc_vector_pkey" PRIMARY KEY ("Id");
+```
 
