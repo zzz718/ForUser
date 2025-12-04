@@ -24,20 +24,16 @@ namespace ForUser.Application.SK
     public class SKEmbeddingService : ISKEmbeddingService
     {
         private readonly KernelFactory _kernelFactory;
-
-        private readonly SnowIdGenerator _snowIdGenerator;
         private  ITextEmbeddingGenerationService embeddingService;
 
         private readonly TextProcessingOptions _textOptions;
         private Kernel _kernel;
         private readonly IKnowLedgeRepository _knowLedgeRepository;
 
-        public SKEmbeddingService(KernelFactory kernelFactory, IConfiguration configuration, SnowIdGenerator snowIdGenerator, IKnowLedgeRepository knowLedgeRepository) // 注入 Singleton Kernel
+        public SKEmbeddingService(KernelFactory kernelFactory, IConfiguration configuration,  IKnowLedgeRepository knowLedgeRepository) // 注入 Singleton Kernel
         {
             _kernelFactory = kernelFactory;
             _kernel = _kernelFactory.GetKernelForModel("embedding");
-            
-            _snowIdGenerator = snowIdGenerator;
             _knowLedgeRepository = knowLedgeRepository;
 
             _textOptions = configuration.GetSection("TextProcessing").Get<TextProcessingOptions>()
@@ -67,7 +63,7 @@ namespace ForUser.Application.SK
 
                 var documentContent =  await ProcessDocxFileAsync(stream, fileName);
 
-                var doc_Id = _snowIdGenerator.NextId();
+                var doc_Id = SnowflakeId.NextId();
 
                 var knowLedgeEntites = new List<EmbeddingEntity>();
                 
@@ -82,12 +78,7 @@ namespace ForUser.Application.SK
                     });
                 });
 
-                foreach (var entity in knowLedgeEntites)
-                {
-                    await _knowLedgeRepository.AddAsync(entity);
-                }
-
-
+                await _knowLedgeRepository.AddRangeAsync(knowLedgeEntites);
             }
             catch (Exception ex)
             {

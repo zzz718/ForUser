@@ -1,4 +1,6 @@
-﻿using System;
+﻿using ForUser.Application.SK.Dtos;
+using ForUser.Domains.Attributes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +10,18 @@ namespace ForUser.Application.SK
 {
     public interface ISemanticChatAppService
     {
-        Task<string> SendMessageAsync(string userInput);
+        [DisableUnitOfWork]
+        Task<long> StartConversationAsync(CreateConversationRequest req);
+        //Task<string> SendMessageAsync(string userInput);
+        Task<IEnumerable<ConversationDto>> GetListConversationsAsync(long userId);
+        Task<ConversationDto?> GetConversationAsync(long conversationId);
+        
+        [UnitOfWork]
+        Task<string> SendMessageAsync(SendMessageRequest req);
+        [UnitOfWork]
+        Task<bool> DeleteConversationAsync(long conversationId);
+        [UnitOfWork]
+        Task<bool> DeleteMessageAsync(long messageId);
+
     }
 }

@@ -11,7 +11,10 @@ namespace ForUser.Domains
     public class Entity : IEntity, IAuditObject
     {
         public virtual  long Id { get ;protected set; }
-        public Entity(){}
+        public Entity()
+        {
+            Id = SnowflakeId.NextId();
+        }
         public  Entity(long Id)
         {
             this.Id = Id;

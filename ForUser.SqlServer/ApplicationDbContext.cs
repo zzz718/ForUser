@@ -26,13 +26,11 @@ namespace ForUser.SqlServer
         /// </summary>
         /// <param name="options"></param>
         /// <param name="snowIdGenerator"></param>
-        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, SnowIdGenerator snowIdGenerator, IHttpContextAccessor httpContextAccessor)
+        public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options, IHttpContextAccessor httpContextAccessor)
         : base(options)
         {
-            _snowIdGenerator = snowIdGenerator;
             _httpContextAccessor = httpContextAccessor;
         }
-        private readonly SnowIdGenerator _snowIdGenerator;
         // 在需要时通过属性获取当前用户
         public ICurrentUser _currentUser => _httpContextAccessor.HttpContext?.RequestServices.GetRequiredService<ICurrentUser>();
 
@@ -99,12 +97,7 @@ namespace ForUser.SqlServer
         private void ApplyConceptsForAddedEntity(EntityEntry entry)
         {
             var entity = entry.Entity;
-            if(entity is IEntity entityBase)
-            {
-                var currentId = (long?)entry.Property("Id").CurrentValue;
-                entry.Property("Id").CurrentValue = _snowIdGenerator.NextId();
 
-            }
             if (entity is IAuditObject audit)
             {
                 audit.CreateId = _currentUser.Id;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ForUser.Domains.Commons;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -11,6 +12,7 @@ namespace ForUser.Domains
     {
         Task<TEntity> GetByIdAsync(TKey id);
         Task AddAsync(TEntity entity);
+        Task<TEntity> AddWithReturnAsync(TEntity entity);
         Task AddRangeAsync(IEnumerable<TEntity> entities);
         Task BulkInsertAsync(IEnumerable<TEntity> entities);
         Task UpdateAsync(TEntity entity);

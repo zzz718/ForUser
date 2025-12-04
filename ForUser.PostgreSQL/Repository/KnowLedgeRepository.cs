@@ -1,5 +1,6 @@
 ﻿using ForUser.Domains.Kernels;
 using ForUser.Domains.Kernels.Entities;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace ForUser.PostgreSQL.Repository
 {
     public class KnowLedgeRepository : PostgreSQLEfCoreRepositoryBase<EmbeddingEntity, long>, IKnowLedgeRepository
     {
-        public KnowLedgeRepository(PostgreSQLDbContext context) : base(context)
+        public KnowLedgeRepository(PostgreSQLDbContext context, IHttpContextAccessor httpContextAccessor) : base(context,  httpContextAccessor)
         {
         }
     }

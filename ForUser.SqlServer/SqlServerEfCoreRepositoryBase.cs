@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using EFCore.BulkExtensions;
+using ForUser.Domains.Commons;
+using System.Reflection;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ForUser.SqlServer
 {
@@ -14,20 +18,44 @@ namespace ForUser.SqlServer
         where TEntity:class
     {
         protected readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        public ICurrentUser _currentUser => _httpContextAccessor.HttpContext?.RequestServices.GetRequiredService<ICurrentUser>();
 
-        public SqlServerEfCoreRepositoryBase(ApplicationDbContext context)
+        public SqlServerEfCoreRepositoryBase(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
         
         public async Task AddAsync(TEntity entity)
         {
             await _context.Set<TEntity>().AddAsync(entity);
         }
+ 
         public async Task BulkInsertAsync(IEnumerable<TEntity> entities)
         {
             if (entities == null || !entities.Any())
                 return;
+
+            foreach (var entity in entities)
+            {
+                if (entity is IEntity entityBase)
+                {
+                    if (entityBase.Id == default)
+                    {
+                        // 通过反射或内部方法设置 Id
+                        typeof(TEntity)
+                            .GetProperty("Id", BindingFlags.NonPublic | BindingFlags.Instance)
+                            ?.SetValue(entity, SnowflakeId.NextId());
+                    }
+                }
+                if (entity is IAuditObject audit)
+                {
+                    audit.CreateId = _currentUser.Id;
+                    audit.CreateTime = DateTime.Now;
+                    audit.CreateName = _currentUser.Name;
+                }
+            }
 
             try
             {
@@ -91,6 +119,12 @@ namespace ForUser.SqlServer
         public Task AddRangeAsync(IEnumerable<TEntity> entities)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<TEntity> AddWithReturnAsync(TEntity entity)
+        {
+            await _context.Set<TEntity>().AddAsync(entity);
+            return entity;
         }
     }
 }
