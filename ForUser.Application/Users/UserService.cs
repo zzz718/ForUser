@@ -18,13 +18,11 @@ namespace ForUser.Application.Users
     {
         private readonly IMapper _mapper;
         private readonly IUserRepository _userRepository;
-        private readonly SnowIdGenerator _snowIdGenerator;
         private readonly IConfiguration _configuration;
 
-        public UserService(IUserRepository userRepository, SnowIdGenerator snowIdGenerator,IMapper mapper, IConfiguration configuration)
+        public UserService(IUserRepository userRepository, IMapper mapper, IConfiguration configuration)
         {
             _userRepository = userRepository;
-            _snowIdGenerator = snowIdGenerator;
             _mapper = mapper;
             _configuration = configuration;
         }

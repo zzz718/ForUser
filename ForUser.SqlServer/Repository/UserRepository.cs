@@ -1,4 +1,5 @@
 ﻿using ForUser.Domains.Users;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace ForUser.SqlServer.Repository
 {
     public class UserRepository : SqlServerEfCoreRepositoryBase<UserEntity, long>, IUserRepository
     {
-        public UserRepository(ApplicationDbContext context) : base(context)
+        public UserRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : base(context,  httpContextAccessor)
         {
         }
 

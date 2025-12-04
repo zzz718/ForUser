@@ -1,4 +1,6 @@
-﻿using Castle.DynamicProxy;
+﻿using Autofac;
+using Autofac.Core;
+using Castle.DynamicProxy;
 using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons.UnitOfWork;
 using ForUser.PostgreSQL;
@@ -13,12 +15,13 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ForUser.HttpApi.Interceptors
+namespace ForUser.Interceptors
 {
     public class UnitOfWorkInterceptor : IInterceptor
     {
         public readonly IServiceProvider _serviceProvider;
         public readonly ILogger<UnitOfWorkInterceptor> _logger;
+
 
         // 现在可以安全地接受依赖
         public UnitOfWorkInterceptor(IServiceProvider serviceProvider, ILogger<UnitOfWorkInterceptor> logger)
@@ -32,10 +35,12 @@ namespace ForUser.HttpApi.Interceptors
             _logger.LogInformation(" 拦截方法: {MethodName}", method.Name);
 
             // 检查是否禁用工作单元
-            var disableAttribute = method.GetCustomAttribute<DisableUnitOfWorkAttribute>() ??
-                                  invocation.TargetType.GetCustomAttribute<DisableUnitOfWorkAttribute>();
+            var disableAttribute = method.GetCustomAttributes<DisableUnitOfWorkAttribute>(true).Any() ||
+               method.DeclaringType.GetCustomAttributes<DisableUnitOfWorkAttribute>(true).Any(); 
 
-            if (disableAttribute != null)
+
+
+            if (disableAttribute )
             {
                 invocation.Proceed();
                 return;
@@ -78,6 +83,7 @@ namespace ForUser.HttpApi.Interceptors
                 if (unitOfWorkResult.IsTransactional && unitOfWork.HasTransaction)
                 {
                     var changes = await unitOfWork.SaveChangesAsync();
+                    
                     _logger.LogInformation("commit  为方法 {MethodName} 提交事务,事务中保存了 {Changes} 个更改", method.Name, changes);
                     await unitOfWork.CommitTransactionAsync();
                 }
@@ -219,11 +225,13 @@ namespace ForUser.HttpApi.Interceptors
 
         private (IUnitOfWork,bool) GetOrCreateUnitOfWork(IInvocation invocation)
         {
-            var dbContextType = GetDbContextType(invocation.InvocationTarget.GetType());
+
+            var dbContextType = GetDbContextType(invocation);
             // 尝试从当前作用域获取工作单元
             var httpContextAccessor = _serviceProvider.GetService<IHttpContextAccessor>();
             if (httpContextAccessor?.HttpContext != null)
             {
+
                 if (dbContextType == 1)
                 {
                     var unitOfWork = httpContextAccessor.HttpContext.RequestServices.GetService<IUnitOfWork<PostgreSQLDbContext>>();
@@ -240,7 +248,7 @@ namespace ForUser.HttpApi.Interceptors
                         return (unitOfWork, false);
                     }
                 }
-                
+
             }
 
             // 创建新的工作单元
@@ -257,13 +265,28 @@ namespace ForUser.HttpApi.Interceptors
         }
 
 
-        private int GetDbContextType(Type serviceType)
+        private int GetDbContextType(IInvocation invocation)
         {
-            if (serviceType.Name.Contains("KnowLedge") || serviceType.Name.Contains("Embedding"))
+
+            var target = invocation.InvocationTarget;
+            var type = target.GetType();
+
+            // BindingFlags 决定能够访问到 private 字段
+            var flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+
+            var fields = type.GetFields(flags);
+
+            foreach (var field in fields)
             {
-                return 1;
+                var name = field.Name;          // 字段名
+                var value = field.GetValue(target).ToString(); // 字段值
+
+                if (value.Contains("PostgreSQL")) return 1;
             }
             return 0;
+
+
         }
+
     }
 }

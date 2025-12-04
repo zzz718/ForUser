@@ -6,7 +6,7 @@ using ForUser.Application.Users.Profiles;
 using ForUser.Domains.Commons;
 using ForUser.Domains.Kernels;
 using ForUser.HttpApi.Controllers;
-using ForUser.HttpApi.Interceptors;
+using ForUser.Interceptors;
 using ForUser.Modules;
 using ForUser.PostgreSQL;
 using ForUser.SqlServer;
@@ -40,9 +40,9 @@ namespace ForUser
             var postgreSQLConnectionString = builder.Configuration.GetConnectionString("PostgreSQLConnection")
                                         ?? throw new InvalidOperationException("Connection string'PostgreSQLConnection' not found.");
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString).LogTo(Console.WriteLine, LogLevel.Information));
+                options.UseSqlServer(connectionString).LogTo(Console.WriteLine, LogLevel.Information), ServiceLifetime.Scoped);
             builder.Services.AddDbContext<PostgreSQLDbContext>(options => 
-                options.UseNpgsql(postgreSQLConnectionString,npgsql => npgsql.UseVector()).LogTo(Console.WriteLine, LogLevel.Information)); // 启用Vector支持
+                options.UseNpgsql(postgreSQLConnectionString,npgsql => npgsql.UseVector()).LogTo(Console.WriteLine, LogLevel.Information), ServiceLifetime.Scoped); // 启用Vector支持
 
             // redis
             builder.Services.AddSingleton<IConnectionMultiplexer>(factory =>
@@ -143,9 +143,7 @@ namespace ForUser
             {
                 
                 containerBuilder.RegisterType<CurrentUser>().As<ICurrentUser>().InstancePerLifetimeScope();
-                // 注册 SnowIdGenerator 为单例
-                containerBuilder.RegisterType<SnowIdGenerator>()
-                                 .SingleInstance(); // ← Autofac 的 Singleton
+
                 containerBuilder.RegisterModule<InfrastructureModule>();
 
                 containerBuilder.RegisterModule<InterceptorModule>();

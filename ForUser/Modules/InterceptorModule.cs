@@ -1,6 +1,6 @@
 ﻿using Autofac;
 using Castle.DynamicProxy;
-using ForUser.HttpApi.Interceptors;
+using ForUser.Interceptors;
 
 namespace ForUser.Modules
 {

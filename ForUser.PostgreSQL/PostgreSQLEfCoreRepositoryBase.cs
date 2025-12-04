@@ -7,6 +7,11 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 using EFCore.BulkExtensions;
+using Microsoft.IdentityModel.Tokens;
+using ForUser.Domains.Commons;
+using System.Reflection;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ForUser.PostgreSQL
 {
@@ -14,19 +19,33 @@ namespace ForUser.PostgreSQL
         where TEntity : class
     {
         protected readonly PostgreSQLDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public PostgreSQLEfCoreRepositoryBase(PostgreSQLDbContext context)
+        public PostgreSQLEfCoreRepositoryBase(PostgreSQLDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
-
+        // 在需要时通过属性获取当前用户
+        public ICurrentUser _currentUser => _httpContextAccessor.HttpContext?.RequestServices.GetRequiredService<ICurrentUser>();
         public async Task AddAsync(TEntity entity)
         {
             await _context.Set<TEntity>().AddAsync(entity);
         }
 
+        public async Task<TEntity> AddWithReturnAsync(TEntity entity)
+        {
+            await _context.Set<TEntity>().AddAsync(entity);
+            return entity;
+        }
+
         public async Task AddRangeAsync(IEnumerable<TEntity> entities)
         {
+            var entityArray = entities.ToArray();
+            if (entityArray.IsNullOrEmpty())
+            {
+                return;
+            }
             await _context.Set<TEntity>().AddRangeAsync(entities);
         }
 
@@ -34,10 +53,13 @@ namespace ForUser.PostgreSQL
         {
             if (entities == null || !entities.Any())
                 return;
+            //第三方库跳过了ef的验证，需要自己添加审计字段
+            InsertBefore(entities.ToList());
 
             try
             {
-                await _context.BulkInsertAsync(entities);
+                var bulkConfig = new BulkConfig { SetOutputIdentity = true};
+                await _context.BulkInsertAsync(entities, bulkConfig);
             }
             catch (Exception ex) when (ex is ArgumentException || ex is KeyNotFoundException)
             {
@@ -52,6 +74,26 @@ namespace ForUser.PostgreSQL
                 throw new ApplicationException($"Bulk insert failed for {typeof(TEntity).Name}: {ex.Message}", ex);
             }
         }
+        private void InsertBefore(List<TEntity> entities)
+        {
+            foreach (var entity in entities)
+            {
+                if (entity is IAuditObject audit)
+                {
+                    audit.CreateId = _currentUser.Id;
+                    audit.CreateTime = DateTime.Now;
+                    audit.CreateName = _currentUser.Name;
+                }
+            }
+        }
+
+
+
+
+
+
+
+
         public Task DeleteAsync(TEntity entity)
         {
             _context.Set<TEntity>().Remove(entity);

@@ -1,5 +1,6 @@
 ﻿using ForUser.Domains.Commons.Object;
 using ForUser.Domains.Commons.UserRole;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace ForUser.SqlServer.Repository
 {
     public class ObjectRepository : SqlServerEfCoreRepositoryBase<ObjectEntity, long>, IObjectRepository
     {
-        public ObjectRepository(ApplicationDbContext context) : base(context)
+        public ObjectRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : base(context,  httpContextAccessor)
         {
         }
     }

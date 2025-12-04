@@ -1,7 +1,10 @@
 ﻿using Autofac;
+using Autofac.Features.AttributeFilters;
 using ForUser.Domains.Kernels;
 using ForUser.Domains.Users;
+using ForUser.PostgreSQL;
 using ForUser.PostgreSQL.Repository;
+using ForUser.SqlServer;
 using ForUser.SqlServer.Repository;
 
 namespace ForUser.Modules
@@ -13,21 +16,21 @@ namespace ForUser.Modules
             var infraAssembly = typeof(UserRepository).Assembly;
             var pgSqlAssembly = typeof(KnowLedgeRepository).Assembly;
             builder.RegisterAssemblyTypes(infraAssembly)
-                   .Where(t => t.Name.EndsWith("Repository")
-                            && !t.IsAbstract
-                            && !t.IsInterface)
-                   .AsImplementedInterfaces()
-                   .InstancePerLifetimeScope();
+                       .Where(t => t.Name.EndsWith("Repository")
+                                && !t.IsAbstract
+                                && !t.IsInterface)
+                       .AsImplementedInterfaces()
+                       .InstancePerLifetimeScope() ;
             builder.RegisterAssemblyTypes(pgSqlAssembly)
-                   .Where(t => t.Name.EndsWith("Repository")
-                            && !t.IsAbstract
-                            && !t.IsInterface)
-                   .AsImplementedInterfaces()
-                   .InstancePerLifetimeScope();
+                       .Where(t => t.Name.EndsWith("Repository")
+                                && !t.IsAbstract
+                                && !t.IsInterface)
+                       .AsImplementedInterfaces()
+                       .InstancePerLifetimeScope() ;
 
             builder.RegisterType<KernelFactory>()
-       .As<KernelFactory>()
-       .InstancePerLifetimeScope();
+                       .As<KernelFactory>()
+                       .InstancePerLifetimeScope();
         }
     }
 }

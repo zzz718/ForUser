@@ -1,5 +1,6 @@
 ﻿using ForUser.Domains.Commons.Role;
 using ForUser.Domains.Users;
+using Microsoft.AspNetCore.Http;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +11,7 @@ namespace ForUser.SqlServer.Repository
 {
     public class RoleRepository : SqlServerEfCoreRepositoryBase<RoleEntity, long>, IRoleRepository
     {
-        public RoleRepository(ApplicationDbContext context) : base(context)
+        public RoleRepository(ApplicationDbContext context, IHttpContextAccessor httpContextAccessor) : base(context,  httpContextAccessor)
         {
         }
     }

@@ -16,17 +16,16 @@ namespace ForUser.PostgreSQL
 {
     public class PostgreSQLDbContext: DbContext
     {
-        private readonly SnowIdGenerator _snowIdGenerator;
+
         private readonly IHttpContextAccessor _httpContextAccessor;
         /// <summary>
         /// 数据库上下文构造函数
         /// </summary>
         /// <param name="options"></param>
         /// <param name="snowIdGenerator"></param>
-        public PostgreSQLDbContext(DbContextOptions<PostgreSQLDbContext> options, SnowIdGenerator snowIdGenerator, IHttpContextAccessor httpContextAccessor)
+        public PostgreSQLDbContext(DbContextOptions<PostgreSQLDbContext> options,  IHttpContextAccessor httpContextAccessor)
         : base(options)
         {
-            _snowIdGenerator = snowIdGenerator;
             _httpContextAccessor = httpContextAccessor;
         }
         // 在需要时通过属性获取当前用户
@@ -53,8 +52,7 @@ namespace ForUser.PostgreSQL
         /// <param name="acceptAllChangesOnSuccess"></param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        public override async Task<int> SaveChangesAsync(
-        bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+        public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
         {
             ApplyConcepts();
             return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
@@ -84,12 +82,7 @@ namespace ForUser.PostgreSQL
         private void ApplyConceptsForAddedEntity(EntityEntry entry)
         {
             var entity = entry.Entity;
-            if (entity is IEntity entityBase)
-            {
-                var currentId = (long?)entry.Property("Id").CurrentValue;
-                entry.Property("Id").CurrentValue = _snowIdGenerator.NextId();
 
-            }
             if (entity is IAuditObject audit)
             {
                 audit.CreateId = _currentUser.Id;

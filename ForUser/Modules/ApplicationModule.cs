@@ -1,8 +1,9 @@
 ﻿using Autofac;
 using Autofac.Extras.DynamicProxy;
+using Castle.DynamicProxy;
 using ForUser.Application.Users;
 using ForUser.Domains.Attributes;
-using ForUser.HttpApi.Interceptors;
+using ForUser.Interceptors;
 using System.Reflection;
 
 namespace ForUser.Modules
