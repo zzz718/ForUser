@@ -33,7 +33,6 @@ namespace ForUser.Modules
 
                 if (hasUnitOfWorkMethods)
                 {
-                    Console.WriteLine($"🎯 Configuring interceptor for {interfaceType.Name}");
 
                     builder.RegisterType(serviceType)
                            .As(interfaceType)
@@ -43,7 +42,6 @@ namespace ForUser.Modules
                 }
                 else
                 {
-                    Console.WriteLine($"📋 Registering {interfaceType.Name} without interceptor");
 
                     builder.RegisterType(serviceType)
                            .As(interfaceType)

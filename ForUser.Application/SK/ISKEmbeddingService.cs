@@ -1,10 +1,7 @@
 ﻿using ForUser.Domains.Attributes;
+using ForUser.Domains.Kernels.Entities;
 using Microsoft.AspNetCore.Http;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Pgvector;
 
 namespace ForUser.Application.SK
 {
@@ -12,5 +9,9 @@ namespace ForUser.Application.SK
     {
         [UnitOfWork]
         Task MessageEmbeddingAsync(IFormFile file);
+        [DisableUnitOfWork]
+        Task<ReadOnlyMemory<float>> GetEmbeddingAsync(string text);
+
+
     }
 }

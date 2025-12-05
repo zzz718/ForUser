@@ -25,4 +25,10 @@
     <Folder Include="Cache\Dtos\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="SK\Skills\Router\Use_kb\prompt.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

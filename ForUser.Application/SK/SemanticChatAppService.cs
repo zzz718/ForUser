@@ -10,6 +10,12 @@ using ForUser.Domains.Kernels.Entities;
 using System.Formats.Asn1;
 using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons;
+using System.Text.Json;
+using DocumentFormat.OpenXml.Wordprocessing;
+using Microsoft.SemanticKernel.Embeddings;
+using Pgvector;
+using Microsoft.EntityFrameworkCore;
+using Pgvector.EntityFrameworkCore;
 
 
 namespace ForUser.Application.SK
@@ -22,10 +28,11 @@ namespace ForUser.Application.SK
         private Kernel _kernel;
         private readonly IConversationRepository _conversationRepository;
         private readonly IMessageRepository _messageRepository;
-
+        private readonly IKnowLedgeRepository _knowLedgeRepository;
+        private readonly ISKEmbeddingService _embeddingService;
 
         private readonly ConcurrentDictionary<string, ChatHistory> _userHistories = new();
-        public SemanticChatAppService(KernelFactory kernelFactory, IConversationRepository conversationRepository, IMessageRepository messageRepository) 
+        public SemanticChatAppService(KernelFactory kernelFactory, IConversationRepository conversationRepository, IMessageRepository messageRepository, IKnowLedgeRepository knowLedgeRepository, ISKEmbeddingService embeddingService) 
         {
             _kernelFactory = kernelFactory;
             _kernel = _kernelFactory.GetKernelForModel("default");
@@ -37,6 +44,8 @@ namespace ForUser.Application.SK
             };
             _conversationRepository = conversationRepository;
             _messageRepository = messageRepository;
+            _knowLedgeRepository = knowLedgeRepository;
+            _embeddingService = embeddingService;
         }
         /// <summary>
         /// 创建会话,需要返回Id，所以不使用工作单元，单独save
@@ -127,28 +136,61 @@ namespace ForUser.Application.SK
         {
             //用户输入存入数据库
             var conv = await _conversationRepository.FindAsync(x => x.Id == req.ConversationId);
-            if(conv ==null) throw new ArgumentException("Conversation not found");
-            if(conv.CreateId != req.UserId) throw new UnauthorizedAccessException();
+            if (conv == null) throw new ArgumentException("Conversation not found");
+            if (conv.CreateId != req.UserId) throw new UnauthorizedAccessException();
             var messages = await _messageRepository.FindListAsync(x => x.ConversationId == req.ConversationId);
-            if(messages.Count <1) throw new InvalidOperationException("no message");
+            if (messages.Count < 1) throw new InvalidOperationException("no message");
 
             conv.Messages = messages;
 
 
-            var userMsg = new MessageEntity
+
+            //判断是否应该使用知识库,以及使用哪个知识库
+            var decision = await ShouldUseKnowledgeBaseAsync(req.Message);
+            if (decision.UseKnowledgeBase)
             {
-                ConversationId = conv.Id,
-                Role = "user",
-                Content = req.Message,
-                Timestamp = DateTime.Now,
-                Sequence = conv.Messages.Count + 1
-            };
-            await _messageRepository.AddAsync(userMsg);
+                //向量化问题
+                var  embedding = await _embeddingService.GetEmbeddingAsync(req.Message);
 
-
+                var vector = new Vector(embedding.ToArray());
+                //通过向量搜索
+                var searchResult = await SearchContextAsync(vector, knowledgeBase: decision.KnowledgeBaseName);
+                string searchResultStr = "";
+                foreach (var item in searchResult)
+                {
+                    searchResultStr += item.Doc_Content.ToString() + "\n";
+                }
+                await _messageRepository.AddAsync(new MessageEntity
+                {
+                    ConversationId = conv.Id,
+                    Role = "system",
+                    Content = searchResultStr,
+                    Timestamp = DateTime.Now,
+                    Sequence = conv.Messages.Count + 1
+                });
+                await _messageRepository.AddAsync(new MessageEntity
+                {
+                    ConversationId = conv.Id,
+                    Role = "user",
+                    Content = req.Message,
+                    Timestamp = DateTime.Now,
+                    Sequence = conv.Messages.Count + 1
+                });
+            }
+            else
+            {
+                await _messageRepository.AddAsync(new MessageEntity
+                {
+                    ConversationId = conv.Id,
+                    Role = "user",
+                    Content = req.Message,
+                    Timestamp = DateTime.Now,
+                    Sequence = conv.Messages.Count + 1
+                });
+            }
             //调用聊天服务
             var chatHistory = new ChatHistory();
-            foreach (var m in conv.Messages.OrderBy(m=>m.Sequence))
+            foreach (var m in conv.Messages.OrderBy(m => m.Sequence))
             {
                 switch (m.Role)
                 {
@@ -184,7 +226,14 @@ namespace ForUser.Application.SK
             await _messageRepository.AddAsync(assistantMsg);
             return assistantText;
         }
-
+                
+        
+        /// <summary>
+        /// 删除会话
+        /// </summary>
+        /// <param name="conversationId"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public async Task<bool> DeleteConversationAsync(long conversationId)
         {
             var conversation = await _conversationRepository.FindAsync(x => x.Id == conversationId);
@@ -192,7 +241,12 @@ namespace ForUser.Application.SK
             await _conversationRepository.DeleteAsync(conversation);
             return true;
         }
-
+        /// <summary>
+        /// 删除会话中的消息
+        /// </summary>
+        /// <param name="messageId"></param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
         public async Task<bool> DeleteMessageAsync(long messageId)
         {
             var message = await _messageRepository.FindAsync(x => x.Id == messageId);
@@ -201,7 +255,73 @@ namespace ForUser.Application.SK
             return true;
         }
 
+        /// <summary>
+        /// 判断是否应该使用知识库
+        /// </summary>
+        /// <param name="userMessage"></param>
+        /// <param name="conversationContext"></param>
+        /// <returns></returns>
+        private async Task<RouterDecision> ShouldUseKnowledgeBaseAsync(string userMessage)
+        {
+            //判断使用哪个知识库
+            var kbs =await SearchKnowledgeBaseAsync();
+            string basePath = AppContext.BaseDirectory;
+            var routerFunction = _kernel.CreateFunctionFromPrompt(promptTemplate: File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Sk\\Skills\\Router\\Use_kb\\prompt.txt")),functionName: "CheckUseKB");
+            var modelResult = await routerFunction.InvokeAsync(_kernel, new()
+            {
+                ["input"] = userMessage,
+                ["kbs"] = kbs
+            });
+            string separator = "\n</think>\n\n";
 
+            int index = modelResult.ToString().IndexOf(separator);
+            string json = index >= 0 ? modelResult.ToString().Substring(index + separator.Length) : string.Empty;
+
+            var decision = JsonSerializer.Deserialize<RouterDecision>(json);
+
+            return decision;
+        }
+
+
+
+        /// <summary>
+        /// 搜索知识库
+        /// </summary>
+        /// <returns></returns>
+        [DisableUnitOfWork]
+        private async Task<string> SearchKnowledgeBaseAsync()
+        {
+            var query = _knowLedgeRepository.AsNoTracking();
+            var kbList = await query.Select(x => x.Doc_Name).Distinct().ToListAsync();
+            var kbs = "";
+            foreach (var kb in kbList)
+            {
+                kbs += kb + ",";
+            }
+            return kbs;
+        }
+        /// <summary>
+        /// 搜索上下文
+        /// </summary>
+        /// <param name="queryEmbedding"></param>
+        /// <param name="topK"></param>
+        /// <param name="knowledgeBase"></param>
+        /// <returns></returns>
+        [DisableUnitOfWork]
+        private async Task<List<EmbeddingEntity>> SearchContextAsync(Vector queryEmbedding, int topK = 5, string? knowledgeBase = null)
+        {
+            var query = _knowLedgeRepository.AsNoTracking();
+
+            if (!string.IsNullOrWhiteSpace(knowledgeBase))
+            {
+                query = query.Where(x => x.Doc_Name == knowledgeBase);
+            }
+
+            return await query
+                .OrderBy(x => x.Embedding!.L2Distance(queryEmbedding))
+                .Take(topK)
+                .ToListAsync();
+        }
 
     }
 }

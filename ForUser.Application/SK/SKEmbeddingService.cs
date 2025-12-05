@@ -18,6 +18,9 @@ using ForUser.Util;
 using Microsoft.Extensions.Configuration;
 using ForUser.Domains.Commons;
 using ForUser.Domains.Kernels.Entities;
+using Pgvector.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using ForUser.Domains.Attributes;
 
 namespace ForUser.Application.SK
 {
@@ -272,6 +275,12 @@ namespace ForUser.Application.SK
 
             return sentences;
         }
+        [DisableUnitOfWork]
+        public async Task<ReadOnlyMemory<float>> GetEmbeddingAsync(string text)
+        {
+            return await embeddingService.GenerateEmbeddingAsync(text);
+        }
+
 
     }
 }
