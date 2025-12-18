@@ -9,7 +9,7 @@ namespace ForUser.Application.SK.Dtos
     /// <summary>
     /// 
     /// </summary>
-    public class RouterDecision
+    public class KnowledgeRouterDto
     {
         public bool UseKnowledgeBase { get; set; }
         public string? KnowledgeBaseName { get; set; }

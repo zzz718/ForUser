@@ -69,6 +69,11 @@ namespace ForUser.PostgreSQL
                 entity.Ignore(e => e.ModifilcationTime);
 
             });
+            builder.Entity<MCPToolEntity>(entity =>
+            {
+                entity.ToTable("mcptoolinfovector");
+                entity.HasKey(e=>e.Id);
+            });
         }
 
         

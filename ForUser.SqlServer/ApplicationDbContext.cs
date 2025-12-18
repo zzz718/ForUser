@@ -5,6 +5,7 @@ using ForUser.Domains.Commons.ObjectFunc;
 using ForUser.Domains.Commons.Role;
 using ForUser.Domains.Commons.RoleObject;
 using ForUser.Domains.Commons.UserRole;
+using ForUser.Domains.Kernels.Entities;
 using ForUser.Domains.Users;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -44,6 +45,8 @@ namespace ForUser.SqlServer
         public DbSet<ObjectFuncEntity> ObjectFuncs { get; set; }
 
         public DbSet<RoleObjectEntity> RoleObjects { get; set; }
+
+
 
         protected override void OnModelCreating(ModelBuilder builder)
         {

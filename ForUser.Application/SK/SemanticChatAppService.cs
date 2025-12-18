@@ -16,6 +16,9 @@ using Microsoft.SemanticKernel.Embeddings;
 using Pgvector;
 using Microsoft.EntityFrameworkCore;
 using Pgvector.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using System;
+using DocumentFormat.OpenXml.Drawing;
 
 
 namespace ForUser.Application.SK
@@ -30,9 +33,12 @@ namespace ForUser.Application.SK
         private readonly IMessageRepository _messageRepository;
         private readonly IKnowLedgeRepository _knowLedgeRepository;
         private readonly ISKEmbeddingService _embeddingService;
-
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly IConfiguration _config;
         private readonly ConcurrentDictionary<string, ChatHistory> _userHistories = new();
-        public SemanticChatAppService(KernelFactory kernelFactory, IConversationRepository conversationRepository, IMessageRepository messageRepository, IKnowLedgeRepository knowLedgeRepository, ISKEmbeddingService embeddingService) 
+        private readonly IMCPToolRepository _mcpToolRepository;
+
+        public SemanticChatAppService(KernelFactory kernelFactory, IConversationRepository conversationRepository, IMessageRepository messageRepository, IKnowLedgeRepository knowLedgeRepository, ISKEmbeddingService embeddingService, IHttpClientFactory clientFactory, IConfiguration config, IMCPToolRepository mcpToolRepository)
         {
             _kernelFactory = kernelFactory;
             _kernel = _kernelFactory.GetKernelForModel("default");
@@ -46,13 +52,16 @@ namespace ForUser.Application.SK
             _messageRepository = messageRepository;
             _knowLedgeRepository = knowLedgeRepository;
             _embeddingService = embeddingService;
+            _clientFactory = clientFactory;
+            _config = config;
+            _mcpToolRepository = mcpToolRepository;
         }
         /// <summary>
         /// 创建会话,需要返回Id，所以不使用工作单元，单独save
         /// </summary>
         /// <param name="request"></param>
         /// <returns></returns>
-       [DisableUnitOfWork]
+        [DisableUnitOfWork]
         public async  Task<long> StartConversationAsync(CreateConversationRequest request)
         {
             var conv = new ConversationEntity()
@@ -168,27 +177,17 @@ namespace ForUser.Application.SK
                     Timestamp = DateTime.Now,
                     Sequence = conv.Messages.Count + 1
                 });
-                await _messageRepository.AddAsync(new MessageEntity
-                {
-                    ConversationId = conv.Id,
-                    Role = "user",
-                    Content = req.Message,
-                    Timestamp = DateTime.Now,
-                    Sequence = conv.Messages.Count + 1
-                });
             }
-            else
+            await _messageRepository.AddAsync(new MessageEntity
             {
-                await _messageRepository.AddAsync(new MessageEntity
-                {
-                    ConversationId = conv.Id,
-                    Role = "user",
-                    Content = req.Message,
-                    Timestamp = DateTime.Now,
-                    Sequence = conv.Messages.Count + 1
-                });
-            }
-            //调用聊天服务
+                ConversationId = conv.Id,
+                Role = "user",
+                Content = req.Message,
+                Timestamp = DateTime.Now,
+                Sequence = conv.Messages.Count + 1
+            });
+            
+            
             var chatHistory = new ChatHistory();
             foreach (var m in conv.Messages.OrderBy(m => m.Sequence))
             {
@@ -261,33 +260,71 @@ namespace ForUser.Application.SK
         /// <param name="userMessage"></param>
         /// <param name="conversationContext"></param>
         /// <returns></returns>
-        private async Task<RouterDecision> ShouldUseKnowledgeBaseAsync(string userMessage)
+        private async Task<KnowledgeRouterDto> ShouldUseKnowledgeBaseAsync(string userMessage)
         {
             //判断使用哪个知识库
             var kbs =await SearchKnowledgeBaseAsync();
             string basePath = AppContext.BaseDirectory;
-            var routerFunction = _kernel.CreateFunctionFromPrompt(promptTemplate: File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Sk\\Skills\\Router\\Use_kb\\prompt.txt")),functionName: "CheckUseKB");
+            var routerFunction = _kernel.CreateFunctionFromPrompt(promptTemplate: File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "Sk\\Skills\\Router\\Use_kb\\prompt.txt")),functionName: "CheckUseKB");
             var modelResult = await routerFunction.InvokeAsync(_kernel, new()
             {
                 ["input"] = userMessage,
                 ["kbs"] = kbs
             });
+            //只获取think之外的结果
             string separator = "\n</think>\n\n";
 
             int index = modelResult.ToString().IndexOf(separator);
             string json = index >= 0 ? modelResult.ToString().Substring(index + separator.Length) : string.Empty;
 
-            var decision = JsonSerializer.Deserialize<RouterDecision>(json);
+            var decision = JsonSerializer.Deserialize<KnowledgeRouterDto>(json);
 
             return decision;
+        }
+        //[DisableUnitOfWork]
+        //private async Task<MCPToolRouterDto> ShouldUseMcpToolAsync()
+        //{
+
+        //}
+
+
+        [UnitOfWork]
+        public async Task GetMcpToolAsync(string serviceKey)
+        {
+            var client = _clientFactory.CreateClient();
+            var mcpToolUrl = _config.GetValue<string>("Gateway:Url")+ serviceKey;
+            HttpResponseMessage resp;
+            try
+            {
+                resp = await client.GetAsync(mcpToolUrl);
+                resp.EnsureSuccessStatusCode();
+            }
+            catch(Exception ex)
+            {
+                throw new Exception("获取MCP工具失败。  "+ex.Message);
+            }
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse($"[{json.Trim().TrimStart('[').TrimEnd(']')}]");
+            // defensive: ensure it's an array-like string or already array.
+            var ops = doc.RootElement;
+            var entities = new List<MCPToolEntity>();
+            foreach (var el in ops.EnumerateArray())
+            {
+                var entity = new MCPToolEntity();
+                entity.ServiceName = ParseNameToRoute(el.GetProperty("name").GetString() ?? "").ToString();
+                entity.ServiceKey = serviceKey;
+                entity.ServiceInfo = BuildParametersSummary(el);
+                entity.ServiceDescribe = el.GetProperty("description").GetString() ?? "";
+                
+                var vector = await _embeddingService.GetEmbeddingAsync(entity.ServiceDescribe);
+                if (!string.IsNullOrWhiteSpace(entity.ServiceDescribe)) entity.Embedding = new Vector(vector.ToArray());
+                entities.Add(entity);
+            }
+            await _mcpToolRepository.AddRangeAsync(entities);
         }
 
 
 
-        /// <summary>
-        /// 搜索知识库
-        /// </summary>
-        /// <returns></returns>
         [DisableUnitOfWork]
         private async Task<string> SearchKnowledgeBaseAsync()
         {
@@ -322,6 +359,59 @@ namespace ForUser.Application.SK
                 .Take(topK)
                 .ToListAsync();
         }
+        /// <summary>
+        /// 构建swagger接口的parameters
+        /// </summary>
+        /// <param name="el"></param>
+        /// <returns></returns>
+        [DisableUnitOfWork]
+        public string BuildParametersSummary(JsonElement el)
+        {
+            if (!el.TryGetProperty("parameters", out var p)) return "";
+            if (p.ValueKind == JsonValueKind.Object)
+            {
+                if (p.TryGetProperty("$ref", out var rf) && rf.ValueKind == JsonValueKind.String)
+                {
+                    return $"ref:{rf.GetString()}";
+                }
+                if (p.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String && t.GetString() == "object")
+                {
+                    if (p.TryGetProperty("properties", out var props) && props.ValueKind == JsonValueKind.Object)
+                    {
+                        var items = new List<string>();
+                        foreach (var prop in props.EnumerateObject())
+                        {
+                            var pname = prop.Name;
+                            var ptype = "object";
+                            if (prop.Value.TryGetProperty("type", out var pt) && pt.ValueKind == JsonValueKind.String) ptype = pt.GetString()!;
+                            items.Add($"{pname}:{ptype}");
+                            if (items.Count >= 8) break;
+                        }
+                        return string.Join(", ", items);
+                    }
+                }
+            }
+            return "";
+        }
+        public (string serviceKey, string route, string method) ParseNameToRoute(string name)
+        {
+            var parts = name.Split('_', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) return (parts.Length > 0 ? parts[0] : "", "/", parts.Length > 0 ? parts[^1] : "get");
 
+            var serviceKey = parts[0];
+            var method = parts[^1].ToLowerInvariant();
+
+            string route;
+            if (parts.Length >= 3 && parts[1].Equals("api", StringComparison.OrdinalIgnoreCase))
+            {
+                // join parts[1..^1]
+                route = "/" + string.Join('/', parts, 1, parts.Length - 2);
+            }
+            else
+            {
+                route = "/" + string.Join('/', parts, 1, parts.Length - 2);
+            }
+            return (serviceKey, route, method);
+        }
     }
 }

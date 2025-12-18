@@ -31,6 +31,7 @@ namespace ForUser.PostgreSQL
         // 在需要时通过属性获取当前用户
         public ICurrentUser _currentUser => _httpContextAccessor.HttpContext?.RequestServices.GetRequiredService<ICurrentUser>();
         public DbSet<EmbeddingEntity> embeddingEntity{ get; set; }
+        public DbSet<MCPToolEntity> MCPToolEntities { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
