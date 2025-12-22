@@ -22,7 +22,7 @@ namespace ForUser.PostgreSQL
             {
                 entity.ToTable("vector_knowledge_doc_vector");
                 entity.HasKey(e=>e.Id);
-                entity.Property(e => e.Id).HasColumnName("Id").ValueGeneratedOnAdd(); ;
+                entity.Property(e => e.Id).HasColumnName("Id").ValueGeneratedOnAdd();
                 entity.Property(e => e.Doc_Id).HasColumnName("Doc_Id");
                 entity.Property(e => e.Doc_Name).HasColumnName("Doc_Name");
                 entity.Property(e => e.Doc_Content).HasColumnName("Doc_Content");
@@ -41,7 +41,7 @@ namespace ForUser.PostgreSQL
                 entity.Property(e => e.Id).HasColumnName("Id").ValueGeneratedNever() ;
                 entity.Property(e => e.Content).HasColumnName("Content");
                 entity.Property(e => e.ConversationId).HasColumnName("ConversationId").IsRequired();
-                entity.Property(e => e.Timestamp).HasColumnName("Timestamp").HasColumnType("timestamp"); 
+                entity.Property(e => e.Timestamp).HasColumnName("Timestamp").HasColumnType("timestamp");
                 entity.Property(e => e.Sequence).HasColumnName("Sequence");
                 entity.Property(e => e.Role).HasColumnName("Role");
                 entity.Ignore(e => e.CreateId);
@@ -50,7 +50,6 @@ namespace ForUser.PostgreSQL
                 entity.Ignore(e => e.ModifierId);
                 entity.Ignore(e => e.ModifilerName);
                 entity.Ignore(e => e.ModifilcationTime);
-
             });
             builder.Entity<ConversationEntity>(entity=>
             {
@@ -68,6 +67,12 @@ namespace ForUser.PostgreSQL
                 entity.Ignore(e => e.ModifilerName);
                 entity.Ignore(e => e.ModifilcationTime);
 
+            });
+            builder.Entity<MCPToolEntity>(entity =>
+            {
+                entity.ToTable("mcptoolinfovector");
+                entity.HasKey(e=>e.Id);
+                entity.Property(e => e.Embedding).HasColumnType("vector(1024)");
             });
         }
 

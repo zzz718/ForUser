@@ -22,6 +22,10 @@ namespace ForUser.Application.SK
         Task<bool> DeleteConversationAsync(long conversationId);
         [UnitOfWork]
         Task<bool> DeleteMessageAsync(long messageId);
+        Task GetMcpToolAsync(string serviceKey);
+
+        Task<string>SendMessageWithMCPAsync(SendMessageRequest req);
+        Task<string> mmmm();
 
     }
 }

@@ -2,6 +2,7 @@
 using ForUser.Application.SK.Dtos;
 using ForUser.Domains.Attributes;
 using ForUser.Domains.Commons;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -103,6 +104,26 @@ namespace ForUser.HttpApi.Controllers
             var ok = await _semanticChatAppService.DeleteMessageAsync(conversationId);
             if (!ok) return NotFound();
             return NoContent();
+        }
+        [HttpGet]
+        [AllowAnonymous]
+        public  async Task GetMcpToolAsync(string serviceKey)
+        {
+             await _semanticChatAppService.GetMcpToolAsync(serviceKey);
+        }
+        [HttpPost]
+        [Permission("1", "创建对象")]
+        public async Task<IActionResult> SendMessageWithMCPAsync([FromBody] SendMessageRequest req)
+        {
+            var resp = await _semanticChatAppService.SendMessageWithMCPAsync(req);
+            return Ok(new { response = resp });
+        }
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<string> mmmm()
+        {
+            var result = await _semanticChatAppService.mmmm();
+            return result;
         }
     }
 }
