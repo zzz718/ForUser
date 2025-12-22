@@ -111,5 +111,19 @@ namespace ForUser.HttpApi.Controllers
         {
              await _semanticChatAppService.GetMcpToolAsync(serviceKey);
         }
+        [HttpPost]
+        [Permission("1", "创建对象")]
+        public async Task<IActionResult> SendMessageWithMCPAsync([FromBody] SendMessageRequest req)
+        {
+            var resp = await _semanticChatAppService.SendMessageWithMCPAsync(req);
+            return Ok(new { response = resp });
+        }
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<string> mmmm()
+        {
+            var result = await _semanticChatAppService.mmmm();
+            return result;
+        }
     }
 }

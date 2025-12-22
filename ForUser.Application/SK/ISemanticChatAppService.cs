@@ -24,5 +24,8 @@ namespace ForUser.Application.SK
         Task<bool> DeleteMessageAsync(long messageId);
         Task GetMcpToolAsync(string serviceKey);
 
+        Task<string>SendMessageWithMCPAsync(SendMessageRequest req);
+        Task<string> mmmm();
+
     }
 }

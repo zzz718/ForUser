@@ -19,6 +19,11 @@ using Pgvector.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using System;
 using DocumentFormat.OpenXml.Drawing;
+using DocumentFormat.OpenXml.Drawing.Charts;
+using System.Text.RegularExpressions;
+using Microsoft.AspNetCore.Routing.Matching;
+using Microsoft.Extensions.DependencyInjection;
+using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 
 namespace ForUser.Application.SK
@@ -148,7 +153,7 @@ namespace ForUser.Application.SK
             if (conv == null) throw new ArgumentException("Conversation not found");
             if (conv.CreateId != req.UserId) throw new UnauthorizedAccessException();
             var messages = await _messageRepository.FindListAsync(x => x.ConversationId == req.ConversationId);
-            if (messages.Count < 1) throw new InvalidOperationException("no message");
+            //if (messages.Count < 1) throw new InvalidOperationException("no message");
 
             conv.Messages = messages;
 
@@ -158,7 +163,6 @@ namespace ForUser.Application.SK
             var decision = await ShouldUseKnowledgeBaseAsync(req.Message);
             if (decision.UseKnowledgeBase)
             {
-                //向量化问题
                 var  embedding = await _embeddingService.GetEmbeddingAsync(req.Message);
 
                 var vector = new Vector(embedding.ToArray());
@@ -186,8 +190,124 @@ namespace ForUser.Application.SK
                 Timestamp = DateTime.Now,
                 Sequence = conv.Messages.Count + 1
             });
-            
-            
+
+
+            var assistantText = await GetLLMResponseAsync(conv);
+            var assistantMsg = new MessageEntity
+            {
+                ConversationId = conv.Id,
+                Role = "assistant",
+                Content = assistantText,
+                Timestamp = DateTime.Now,
+                Sequence = conv.Messages.Count + 1
+            };
+            await _messageRepository.AddAsync(assistantMsg);
+            return assistantText;
+        }
+
+        public async Task<string> SendMessageWithMCPAsync(SendMessageRequest req)
+        {
+            //用户输入先放入数据库
+            var conv = await _conversationRepository.FindAsync(x => x.Id == req.ConversationId);
+            if (conv == null) throw new ArgumentException("Conversation not found");
+            if (conv.CreateId != req.UserId) throw new UnauthorizedAccessException();
+            var messages = await _messageRepository.FindListAsync(x => x.ConversationId == req.ConversationId);
+            //if (messages.Count < 1) throw new InvalidOperationException("no message");
+            conv.Messages = messages;
+
+            //向量化问题，然后通过向量距离获取较近的40条mcp工具做初筛
+            var embedding = await _embeddingService.GetEmbeddingAsync(req.Message);
+
+            var vector = new Vector(embedding.ToArray());
+
+            var initial = await SearchMCPToolWithVectorAsync(vector);
+            //通过关键词做筛选
+            var keyWords = ExtractKeywords(req.Message);
+            var candidates = new List<ToolCandidate>();
+            //通过以上筛选计算得分
+            foreach (var item in initial)
+            {
+                candidates.Add(new ToolCandidate
+                {
+                    ServiceName = item.ServiceName,
+                    ServiceKey = item.ServiceKey,
+                    ServiceInfo = item.ServiceInfo,
+                    ServiceDescribe = item.ServiceDescribe,
+                    Embedding = item.Embedding,
+                    KeywordBoost = ComputeKeywordBoost(item, keyWords),
+                    FinalScore = 0.7 * NormalizeSemanticScore(item.SemanticScore)+ 0.3*ComputeKeywordBoost(item, keyWords)
+                });
+            }
+            //选出得分前5条MCPTool
+            var filtered = candidates
+                                    .OrderByDescending(c => c.FinalScore)
+                                    .ThenByDescending(c => c.SemanticScore)
+                                    .ThenByDescending(c =>c.KeywordBoost)
+                                    .Take(5)
+                                    .ToList(); 
+            var TOOLS_JSON = JsonSerializer.Serialize(filtered.Select(c=>new 
+            {
+                c.ServiceName,
+                c.ServiceDescribe,
+                c.ServiceInfo,
+                c.ServiceKey,
+            }));
+            var routerFunction = _kernel.CreateFunctionFromPrompt
+                (promptTemplate: File.ReadAllText(System.IO.Path.Combine(AppContext.BaseDirectory, "Sk\\Skills\\Router\\Use_MCP\\prompt.txt")), functionName: "CheckUseMCPTool");
+            //结合问题一起发给llm
+            var modelResult = await routerFunction.InvokeAsync(_kernel, new()
+            {
+                ["USER_INPUT"] = req.Message,
+                ["TOOLS_JSON"] = TOOLS_JSON
+            });
+            //将返回数据中的思考部分去掉，只保留返回数据中的MCP工具部分
+            string separator = "\n</think>\n\n";
+
+            int index = modelResult.ToString().IndexOf(separator);
+            string json = index >= 0 ? modelResult.ToString().Substring(index + separator.Length) : string.Empty;
+
+            //通过llm返回的MCP工具json，调用代理服务获取数据
+            var client = _clientFactory.CreateClient();
+            var getDataUrl = _config.GetValue<string>("Gateway:GetData");
+            var response = await client.PostAsync(getDataUrl, new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+
+            await _messageRepository.AddAsync(new MessageEntity
+            {
+                ConversationId = conv.Id,
+                Role = "user",
+                Content = req.Message,
+                Timestamp = DateTime.Now,
+                Sequence = conv.Messages.Count + 1
+            });
+            await _messageRepository.AddAsync(new MessageEntity
+            {
+                ConversationId = conv.Id,
+                Role = "system",
+                Content = responseContent,
+                Timestamp = DateTime.Now,
+                Sequence = conv.Messages.Count + 1
+            });
+            var assistantText = await GetLLMResponseAsync(conv);
+            var assistantMsg = new MessageEntity
+            {
+                ConversationId = conv.Id,
+                Role = "assistant",
+                Content = assistantText,
+                Timestamp = DateTime.Now,
+                Sequence = conv.Messages.Count + 1
+            };
+            await _messageRepository.AddAsync(assistantMsg);
+            return assistantText;
+        }
+        /// <summary>
+        /// 将用户输入，系统参数，mcp工具结果一起发送给LLM
+        /// </summary>
+        /// <param name="conv">用户输入，系统参数，mcp工具结果</param>
+        /// <returns>LLM返回数据</returns>
+        private async Task<string> GetLLMResponseAsync(ConversationEntity conv)
+        {
             var chatHistory = new ChatHistory();
             foreach (var m in conv.Messages.OrderBy(m => m.Sequence))
             {
@@ -212,21 +332,8 @@ namespace ForUser.Application.SK
                 executionSettings: _settings,
                 kernel: _kernel
             );
-            //将聊天结果存入数据库
-            var assistantText = chatMessage?.Content ?? "No response from AI.";
-            var assistantMsg = new MessageEntity
-            {
-                ConversationId = conv.Id,
-                Role = "assistant",
-                Content = assistantText,
-                Timestamp = DateTime.Now,
-                Sequence = conv.Messages.Count + 1
-            };
-            await _messageRepository.AddAsync(assistantMsg);
-            return assistantText;
+            return chatMessage?.Content ?? "No response";
         }
-                
-        
         /// <summary>
         /// 删除会话
         /// </summary>
@@ -281,13 +388,14 @@ namespace ForUser.Application.SK
 
             return decision;
         }
-        //[DisableUnitOfWork]
-        //private async Task<MCPToolRouterDto> ShouldUseMcpToolAsync()
-        //{
-
-        //}
 
 
+        /// <summary>
+        /// 通过http请求McpTooljson
+        /// </summary>
+        /// <param name="serviceKey"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         [UnitOfWork]
         public async Task GetMcpToolAsync(string serviceKey)
         {
@@ -322,8 +430,24 @@ namespace ForUser.Application.SK
             }
             await _mcpToolRepository.AddRangeAsync(entities);
         }
+        [DisableUnitOfWork]
+        private async Task<List<ToolCandidate>> SearchMCPToolWithVectorAsync(Vector vector,int topK=40)
+        {
+            var query = _mcpToolRepository.AsNoTracking();
 
-
+            
+            return [.. query.Select(s => new ToolCandidate
+            {
+                ServiceName = s.ServiceName,
+                ServiceDescribe = s.ServiceDescribe,
+                ServiceInfo = s.ServiceInfo,
+                ServiceKey = s.ServiceKey,
+                Embedding = s.Embedding,
+                SemanticScore = 1 - s.Embedding.CosineDistance(vector)
+            }) 
+            .OrderByDescending(c=>c.SemanticScore)
+            .Take(topK)];                       // 取前 topK 条
+        }
 
         [DisableUnitOfWork]
         private async Task<string> SearchKnowledgeBaseAsync()
@@ -358,6 +482,48 @@ namespace ForUser.Application.SK
                 .OrderBy(x => x.Embedding!.L2Distance(queryEmbedding))
                 .Take(topK)
                 .ToListAsync();
+        }
+        /// <summary>
+        /// 计算关键词分数
+        /// </summary>
+        /// <param name="c"></param>
+        /// <param name="keywords"></param>
+        /// <returns></returns>
+        private double ComputeKeywordBoost(ToolCandidate c, List<string> keywords)
+        {
+            if (keywords == null || keywords.Count == 0) return 0;
+            var text = (c.ServiceName + " " + c.ServiceDescribe + " " + c.ServiceInfo).ToLowerInvariant();
+            int hit = keywords.Count(k => text.Contains(k));
+            double ratio = (double)hit / (double)keywords.Count;
+            return Math.Min(1, ratio); // 0..1
+        }
+        private double NormalizeSemanticScore(double raw)
+        {
+            if (raw < 0) raw = 0;
+            if (raw > 1) raw = 1;
+            return raw;
+        }
+        // 简单关键词提取：去停用词、非中文/英文字符、按空格/标点切分
+        private static readonly string[] StopWords = new[] { "the", "is", "请", "帮我", "获取", "查询" /* add more */ };
+        /// <summary>
+        /// 提取关键词
+        /// </summary>
+        /// <param name="text">用户输入问题</param>
+        /// <returns></returns>
+        private List<string> ExtractKeywords(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return new List<string>();
+            // 小写
+            var s = text.ToLowerInvariant();
+            // 保留字母/数字/中文，替换其他为空格
+            var matches = Regex.Matches(s,
+        @"(?:(?:物料编码|货号|产品编号|物料号)\s*[为:=：]?\s*)?(\d{2}\.\d{2}\.\d{4}\.\d{2})",
+        RegexOptions.IgnoreCase);
+
+            return matches.Cast<Match>()
+                         .Select(m => m.Groups[1].Value)
+                         .Distinct()
+                         .ToList();
         }
         /// <summary>
         /// 构建swagger接口的parameters
@@ -413,5 +579,19 @@ namespace ForUser.Application.SK
             }
             return (serviceKey, route, method);
         }
+
+
+        public async Task<string> mmmm()
+        {
+            string json = "{\"should_call\":true,\"tool\":\"(permission, /api/material/get, get)\",\"arguments\":{\"id\":\"1175468\"},\"reason\":\"用户请求获取物料信息，需调用获取物料详情接口\",\"confidence\":0.95}";
+
+            //通过llm返回的MCP工具json，调用代理服务获取数据
+            var client = _clientFactory.CreateClient();
+            var getDataUrl = _config.GetValue<string>("Gateway:GetData");
+            var response = await client.PostAsync(getDataUrl, new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
+            var re = await response.Content.ReadAsStringAsync();
+            return "";
+        }
+
     }
 }
