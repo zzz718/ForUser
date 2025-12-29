@@ -442,4 +442,29 @@ CREATE TABLE "public"."vector_knowledge_doc_vector" (
 -- ----------------------------
 ALTER TABLE "public"."vector_knowledge_doc_vector" ADD CONSTRAINT "vector_knowledge_doc_vector_pkey" PRIMARY KEY ("Id");
 ```
+### mcptoolinfovector
+```bash
+DROP TABLE IF EXISTS "public"."mcptoolinfovector";
+CREATE TABLE "public"."mcptoolinfovector" (
+  "Id" int8 NOT NULL,
+  "ServiceKey" varchar(255) COLLATE "pg_catalog"."default" NOT NULL,
+  "ServiceInfo" text COLLATE "pg_catalog"."default" NOT NULL,
+  "ServiceDescribe" varchar(2000) COLLATE "pg_catalog"."default" NOT NULL,
+  "Embedding" "public"."vector" NOT NULL,
+  "ServiceName" varchar(255) COLLATE "pg_catalog"."default" NOT NULL
+)
+;
+COMMENT ON COLUMN "public"."mcptoolinfovector"."Id" IS '主键Id';
+COMMENT ON COLUMN "public"."mcptoolinfovector"."ServiceKey" IS '服务唯一标识';
+COMMENT ON COLUMN "public"."mcptoolinfovector"."ServiceInfo" IS '服务接口信息';
+COMMENT ON COLUMN "public"."mcptoolinfovector"."ServiceDescribe" IS '服务描述';
+COMMENT ON COLUMN "public"."mcptoolinfovector"."Embedding" IS '服务描述Embedding';
+COMMENT ON COLUMN "public"."mcptoolinfovector"."ServiceName" IS '服务名称';
+
+-- ----------------------------
+-- Primary Key structure for table mcptoolinfovector
+-- ----------------------------
+ALTER TABLE "public"."mcptoolinfovector" ADD CONSTRAINT "mcptoolinfovector_pkey" PRIMARY KEY ("Id");
+
+```
 
