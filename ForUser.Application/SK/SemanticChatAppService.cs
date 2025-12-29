@@ -1,29 +1,18 @@
-﻿using Microsoft.SemanticKernel.ChatCompletion;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Connectors.OpenAI;
-using ForUser.Domains.Kernels;
-using Microsoft.Extensions.Logging;
-using System.Collections.Concurrent;
-using DocumentFormat.OpenXml.Spreadsheet;
+﻿using DocumentFormat.OpenXml.Wordprocessing;
 using ForUser.Application.SK.Dtos;
-using ForUser.Domains.Kernels.Entities;
-using System.Formats.Asn1;
 using ForUser.Domains.Attributes;
-using ForUser.Domains.Commons;
-using System.Text.Json;
-using DocumentFormat.OpenXml.Wordprocessing;
-using Microsoft.SemanticKernel.Embeddings;
-using Pgvector;
+using ForUser.Domains.Kernels;
+using ForUser.Domains.Kernels.Entities;
 using Microsoft.EntityFrameworkCore;
-using Pgvector.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using System;
-using DocumentFormat.OpenXml.Drawing;
-using DocumentFormat.OpenXml.Drawing.Charts;
+using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Pgvector;
+using Pgvector.EntityFrameworkCore;
+using System.Collections.Concurrent;
+using System.Text.Json;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Routing.Matching;
-using Microsoft.Extensions.DependencyInjection;
-using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
 
 
 namespace ForUser.Application.SK
@@ -42,7 +31,6 @@ namespace ForUser.Application.SK
         private readonly IConfiguration _config;
         private readonly ConcurrentDictionary<string, ChatHistory> _userHistories = new();
         private readonly IMCPToolRepository _mcpToolRepository;
-
         public SemanticChatAppService(KernelFactory kernelFactory, IConversationRepository conversationRepository, IMessageRepository messageRepository, IKnowLedgeRepository knowLedgeRepository, ISKEmbeddingService embeddingService, IHttpClientFactory clientFactory, IConfiguration config, IMCPToolRepository mcpToolRepository)
         {
             _kernelFactory = kernelFactory;
@@ -263,12 +251,14 @@ namespace ForUser.Application.SK
             //将返回数据中的思考部分去掉，只保留返回数据中的MCP工具部分
             string separator = "\n</think>\n\n";
 
+            
             int index = modelResult.ToString().IndexOf(separator);
             string json = index >= 0 ? modelResult.ToString().Substring(index + separator.Length) : string.Empty;
-
             //通过llm返回的MCP工具json，调用代理服务获取数据
             var client = _clientFactory.CreateClient();
             var getDataUrl = _config.GetValue<string>("Gateway:GetData");
+
+
             var response = await client.PostAsync(getDataUrl, new StringContent(json, System.Text.Encoding.UTF8, "application/json"));
             var responseContent = await response.Content.ReadAsStringAsync();
 

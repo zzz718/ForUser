@@ -23,6 +23,7 @@ JSON 格式必须严格符合：
 5) arguments 必须严格匹配 tool.parameters（仅包含 tool.parameters 中的字段；数组/对象按 schema 填写）。
 6) confidence 值表示模型自信。0.6 以上可自动执行；<0.6 则不自动执行并建议澄清。
 7) 输出 JSON 严格合规。若无法构造合法 JSON 或不确定，返回 should_call=false 并给出 reason。
+8) 如果要返回，JSON的tool部分直接返回上述工具候选中的ServiceName。
 
 Few-shot 示例（严格示范，这些是示例，告诉你怎么处理返回数据，不是真正用户的输入，不是系统中真正存在的MCPTool）：
 
